@@ -2,17 +2,12 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/atoms/Button';
 import { Chip } from '@/components/atoms/Chip';
+import { ImportProgress } from '@/components/molecules/ImportProgress';
 import { FONT, RADIUS, SPACE } from '@/constants/theme';
-import { DEFAULT_IMPORT_DAYS, useHistoryImport, type HistoryImportPhase, type HistoryImportResult } from '@/hooks/useHistoryImport';
+import { DEFAULT_IMPORT_DAYS, useHistoryImport, type HistoryImportResult } from '@/hooks/useHistoryImport';
 import { useTheme } from '@/hooks/useTheme';
 
 const PERIOD_OPTIONS = [7, 30, 90] as const;
-
-const PHASE_LABEL: Record<Exclude<HistoryImportPhase, 'idle'>, string> = {
-  reading: '문자 가져오는 중…',
-  uploading: '업로드 중…',
-  organizing: '정리 중…',
-};
 
 function resultMessage(r: HistoryImportResult): string {
   const total = r.sms + r.notifications;
@@ -35,7 +30,8 @@ export function HistoryImportCard({ framed = true }: { framed?: boolean }) {
           <Chip key={option} label={`최근 ${option}일`} selected={days === option} tone={status.group} onPress={() => setDays(option)} />
         ))}
       </View>
-      <Button label={phase === 'idle' ? '가져오기' : PHASE_LABEL[phase]} isLoading={false} disabled={isRunning} onPress={() => run(days)} />
+      <Button label="가져오기" isLoading={isRunning} disabled={isRunning} onPress={() => run(days)} />
+      {phase !== 'idle' ? <ImportProgress phase={phase} /> : null}
       {result && !isRunning ? <Text style={[FONT.caption, { color: colors.textSecondary }]}>{resultMessage(result)}</Text> : null}
       {error ? <Text style={[FONT.caption, { color: status.cancelled.fg }]}>가져오지 못했어요. 다시 시도해 주세요.</Text> : null}
     </View>

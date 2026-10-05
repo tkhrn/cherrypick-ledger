@@ -1,5 +1,6 @@
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView, useBottomSheetModal, type BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { IconPencil } from '@tabler/icons-react-native';
 import { BackHandler, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { Button } from '@/components/atoms/Button';
@@ -93,11 +94,11 @@ function SheetContent({ transaction: t, onRegrouped }: { transaction: Transactio
             <SheetTextField placeholder="가게 이름" autoFocus value={draft.merchant} onChangeText={(merchant) => change({ merchant })} onSubmitEditing={() => setIsEditingName(false)} returnKeyType="done" />
           </View>
         ) : (
-          <Pressable style={styles.grow} accessibilityRole="button" accessibilityHint="가게 이름 고치기" onPress={() => setIsEditingName(true)}>
-            <Text style={[FONT.title, { color: draft.merchant ? colors.textPrimary : colors.textSecondary }]} numberOfLines={2}>
+          <Pressable style={[styles.grow, styles.nameRow]} accessibilityRole="button" accessibilityHint="가게 이름 고치기" onPress={() => setIsEditingName(true)} hitSlop={SPACE.sm}>
+            <Text style={[FONT.title, styles.shrink, { color: draft.merchant ? colors.textPrimary : colors.textSecondary }]} numberOfLines={2}>
               {draft.merchant || '가게 이름 없음'}
             </Text>
-            <Text style={[FONT.caption, { color: colors.accent }]}>{draft.merchant ? '이름 고치기' : '눌러서 가게 이름 입력'}</Text>
+            <IconPencil size={18} color={colors.textMuted} />
           </Pressable>
         )}
         <Text style={[FONT.amountLarge, { color: isCancelled ? colors.textMuted : colors.textPrimary, textDecorationLine: isCancelled ? 'line-through' : 'none' }]}>
@@ -124,4 +125,6 @@ const styles = StyleSheet.create({
   inner: { padding: SPACE.lg, gap: SPACE.md },
   title: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.md },
   grow: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
+  shrink: { flexShrink: 1 },
 });
