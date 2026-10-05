@@ -14,7 +14,7 @@ function clean(value: string): string | null {
   return trimmed.slice(0, MAX_MERCHANT_LENGTH);
 }
 
-function lastMeaningfulLine(text: string): string | null {
+export function lastMeaningfulLine(text: string): string | null {
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
   if (lines.length < 3) return null;
   const candidates = lines.filter((line) => !NOISE_LINE.test(line));
