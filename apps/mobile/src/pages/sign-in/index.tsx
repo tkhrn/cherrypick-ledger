@@ -39,7 +39,7 @@ export default function SignInPage() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
             <CherryMark size={MARK_SIZE} />
-            <Text style={[styles.wordmark, { color: colors.textPrimary }]}>cherrypick</Text>
+            <Text style={[styles.wordmark, { color: colors.textPrimary }]}>Cherrypick</Text>
             <Text style={[FONT.body, { color: colors.textSecondary }]}>내 소비만 골라 담는 가계부</Text>
           </View>
 

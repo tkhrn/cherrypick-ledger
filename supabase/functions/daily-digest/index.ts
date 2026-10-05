@@ -1,4 +1,5 @@
-import { json, requireEnv } from '../_shared/http.ts';
+import { isCronCall } from '../_shared/cron.ts';
+import { json } from '../_shared/http.ts';
 import { createAdminClient } from '../_shared/supabaseAdmin.ts';
 
 const DEFAULT_EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
@@ -11,9 +12,9 @@ function currentKstHour(): string {
 
 Deno.serve(async (req) => {
   const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
-  if (token !== requireEnv('CRON_SECRET')) return json({ error: 'unauthorized' }, 401);
-
   const admin = createAdminClient();
+  if (!(await isCronCall(admin, token))) return json({ error: 'unauthorized' }, 401);
+
   const { data: due } = await admin
     .from('user_settings')
     .select('user_id, expo_push_token')
@@ -28,7 +29,7 @@ Deno.serve(async (req) => {
       .eq('user_id', user.user_id)
       .eq('status', 'pending');
     if (!count) continue;
-    messages.push({ to: user.expo_push_token, title: 'cherrypick', body: `정리할 소비 ${count}건이 있어요`, data: { url: '/' } });
+    messages.push({ to: user.expo_push_token, title: 'Cherrypick', body: `정리할 소비 ${count}건이 있어요`, data: { url: '/' } });
   }
 
   if (messages.length > 0) {

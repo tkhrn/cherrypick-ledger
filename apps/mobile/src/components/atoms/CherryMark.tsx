@@ -3,7 +3,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 // designs/brand/cherry-mark.svg 와 같은 도형. 마크를 바꾸면 둘 다 고친다.
 export function CherryMark({ size = 72 }: { size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 100 100" accessibilityLabel="cherrypick">
+    <Svg width={size} height={size} viewBox="0 0 100 100" accessibilityLabel="Cherrypick">
       <Path d="M54 10 C51 24 40 35 30 43" stroke="#2F5D3A" strokeWidth={6} fill="none" strokeLinecap="round" />
       <Path d="M54 10 C58 25 66 35 72 43" stroke="#2F5D3A" strokeWidth={6} fill="none" strokeLinecap="round" />
       <Path d="M53 11 q14 -10 28 -2 q-13 11 -28 2z" fill="#3E7B4C" />

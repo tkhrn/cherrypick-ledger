@@ -24,7 +24,7 @@ export default function OnboardingPermissionPage() {
     >
       <View style={[styles.card, { backgroundColor: isGranted ? status.mine.bg : colors.bgSubtle }]}>
         <Text style={[FONT.body, { color: isGranted ? status.mine.fg : colors.textSecondary }]}>
-          {isGranted ? '알림 접근이 켜져 있어요' : isAvailable ? '설정에서 cherrypick 알림 접근을 켜고 돌아오세요' : '이 빌드에서는 알림 수집을 쓸 수 없어요 (개발 빌드 필요)'}
+          {isGranted ? '알림 접근이 켜져 있어요' : isAvailable ? '설정에서 Cherrypick 알림 접근을 켜고 돌아오세요' : '이 빌드에서는 알림 수집을 쓸 수 없어요 (개발 빌드 필요)'}
         </Text>
       </View>
     </StepLayout>

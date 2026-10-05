@@ -1,5 +1,6 @@
 import { createGeminiClient, runOrganize } from '@core';
-import { json, requireEnv } from '../_shared/http.ts';
+import { isCronCall } from '../_shared/cron.ts';
+import { json } from '../_shared/http.ts';
 import { createAdminClient } from '../_shared/supabaseAdmin.ts';
 import { createSupabaseRepo } from '../_shared/supabaseRepo.ts';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
   const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
   const admin = createAdminClient();
 
-  if (token && token === requireEnv('CRON_SECRET')) {
+  if (await isCronCall(admin, token)) {
     const users = await usersWithPendingNotifications(admin);
     const results = [];
     for (const userId of users) results.push(await organizeUser(admin, userId, 'cron'));

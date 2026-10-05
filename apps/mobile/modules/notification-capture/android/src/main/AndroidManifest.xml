@@ -7,7 +7,7 @@
     <service
       android:name="expo.modules.notificationcapture.CaptureListenerService"
       android:exported="true"
-      android:label="cherrypick 알림 수집"
+      android:label="Cherrypick 알림 수집"
       android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
       <intent-filter>
         <action android:name="android.service.notification.NotificationListenerService" />
