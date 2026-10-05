@@ -33,6 +33,7 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="auth-callback" />
       <Stack.Protected guard={route === 'sign-in'}>
         <Stack.Screen name="sign-in" />
       </Stack.Protected>

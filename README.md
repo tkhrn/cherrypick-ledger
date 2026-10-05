@@ -119,7 +119,7 @@ pnpm sync:core
    pnpm sync:core && pnpm exec supabase functions deploy
    ```
 
-6. 로그인 메일에 6자리 코드가 나오게 하기: 대시보드 → Authentication → Emails → Magic Link 템플릿 본문에 `{{ .Token }}`을 넣는다.
+6. 로그인 링크가 앱을 열도록: 대시보드 → Authentication → URL Configuration → Redirect URLs에 `cherrypick://**` 추가 (무료 플랜은 메일 템플릿 수정이 안 돼서 기본 메일의 로그인 링크를 쓴다)
 
 7. **가입 막기 (중요)**: 앱(APK)에는 anon 키가 들어 있어서 누구나 계정을 만들 수 있고, 그러면 내 Gemini 키를 같이 쓰게 돼요. 내 계정으로 처음 로그인한 뒤 대시보드 → Authentication → Sign In / Providers에서 **Allow new users to sign up**을 끈다.
 

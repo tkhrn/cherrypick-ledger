@@ -1,3 +1,4 @@
-<h2>Cherrypick 로그인 코드</h2>
-<p>앱에 아래 코드를 입력하세요. 잠시 후 만료돼요.</p>
-<p style="font-size:24px;font-weight:600;letter-spacing:4px">{{ .Token }}</p>
+<h2>Cherrypick 로그인</h2>
+<p>이 폰에서 아래 링크를 누르면 앱으로 로그인돼요.</p>
+<p><a href="{{ .ConfirmationURL }}">Cherrypick 로그인</a></p>
+<p>또는 앱에 코드를 입력하세요: <strong style="font-size:20px;letter-spacing:3px">{{ .Token }}</strong></p>

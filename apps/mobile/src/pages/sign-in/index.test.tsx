@@ -22,7 +22,7 @@ describe('SignInPage', () => {
     await renderPage();
 
     await fireEvent.changeText(screen.getByPlaceholderText('name@example.com'), 'me@example.com');
-    await fireEvent.press(screen.getByText('코드 받기'));
+    await fireEvent.press(screen.getByText('로그인 링크 받기'));
 
     await waitFor(() => expect(createEmailOtp).toHaveBeenCalledWith('me@example.com'));
     await fireEvent.changeText(await screen.findByPlaceholderText('메일로 받은 코드'), '123456');
@@ -34,7 +34,7 @@ describe('SignInPage', () => {
   it('shows an inline error for an invalid email', async () => {
     await renderPage();
     await fireEvent.changeText(screen.getByPlaceholderText('name@example.com'), 'nope');
-    await fireEvent.press(screen.getByText('코드 받기'));
+    await fireEvent.press(screen.getByText('로그인 링크 받기'));
     expect(await screen.findByText('이메일 주소를 확인해 주세요')).toBeTruthy();
     expect(createEmailOtp).not.toHaveBeenCalledWith('nope');
   });

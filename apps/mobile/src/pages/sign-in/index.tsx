@@ -60,11 +60,12 @@ export default function SignInPage() {
                   }}
                   errorText={emailError ?? requestCode.error?.message}
                 />
-                <Button label="코드 받기" variant="brand" isLoading={requestCode.isPending} onPress={handleRequestCode} />
+                <Button label="로그인 링크 받기" variant="brand" isLoading={requestCode.isPending} onPress={handleRequestCode} />
               </>
             ) : (
               <>
-                <Text style={[FONT.caption, { color: colors.textSecondary }]}>{`${email}로 보낸 코드를 입력하세요.`}</Text>
+                <Text style={[FONT.body, { color: colors.textPrimary }]}>메일함을 확인해 주세요</Text>
+                <Text style={[FONT.caption, { color: colors.textSecondary }]}>{`${email}로 보낸 메일의 로그인 링크를 이 폰에서 누르면 바로 들어와요. 메일에 코드가 있다면 아래에 입력해도 돼요.`}</Text>
                 <TextField
                   placeholder="메일로 받은 코드"
                   keyboardType="number-pad"
