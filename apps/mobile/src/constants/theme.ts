@@ -1,3 +1,5 @@
+import { StyleSheet } from 'react-native';
+
 // designs/look-and-feel.md 토큰을 그대로 옮긴 값. 색은 여기서만 정의한다.
 
 const base = {
@@ -65,7 +67,7 @@ export const RADIUS = { sm: 6, md: 10, lg: 16, pill: 999 } as const;
 export const ROW_HEIGHT = 56;
 export const ICON_CIRCLE = 32;
 
-export const FONT = {
+export const FONT = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '600' },
   amountLarge: { fontSize: 22, fontWeight: '600', fontVariant: ['tabular-nums'] },
   body: { fontSize: 15, fontWeight: '400' },
@@ -73,6 +75,6 @@ export const FONT = {
   caption: { fontSize: 12, fontWeight: '400' },
   micro: { fontSize: 10, fontWeight: '400', fontVariant: ['tabular-nums'] },
   mono: { fontSize: 12, fontFamily: 'monospace' },
-} as const;
+});
 
 export const COLORS = base;

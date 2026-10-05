@@ -1,5 +1,1 @@
-import { Text } from 'react-native';
-
-export default function Placeholder() {
-  return <Text>index</Text>;
-}
+export { default } from '@/pages/review';

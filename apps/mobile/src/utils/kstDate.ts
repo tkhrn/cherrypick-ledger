@@ -20,13 +20,17 @@ export function todayKstDayKey(now = new Date()): string {
   return kstDayKey(now.toISOString());
 }
 
-export function dayLabel(dayKey: string, todayKey: string): string {
+/** 'YYYY-MM-DD' → '10월 2일 (금)' */
+export function formatDayKey(dayKey: string): string {
   const [year, month, day] = dayKey.split('-').map(Number) as [number, number, number];
-  const date = Date.UTC(year, month - 1, day);
-  const diffDays = Math.round((Date.parse(`${todayKey}T00:00:00Z`) - date) / DAY_MS);
+  return `${month}월 ${day}일 (${WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()]})`;
+}
+
+export function dayLabel(dayKey: string, todayKey: string): string {
+  const diffDays = Math.round((Date.parse(`${todayKey}T00:00:00Z`) - Date.parse(`${dayKey}T00:00:00Z`)) / DAY_MS);
   if (diffDays === 0) return '오늘';
   if (diffDays === 1) return '어제';
-  return `${month}월 ${day}일 (${WEEKDAYS[new Date(date).getUTCDay()]})`;
+  return formatDayKey(dayKey);
 }
 
 /** KST 한 달을 감싸는 UTC 시각 범위 [from, to) */
@@ -35,4 +39,13 @@ export function kstMonthRange(year: number, month: number): { from: string; to: 
     from: new Date(Date.UTC(year, month - 1, 1) - KST_OFFSET_MS).toISOString(),
     to: new Date(Date.UTC(year, month, 1) - KST_OFFSET_MS).toISOString(),
   };
+}
+
+const ORGANIZE_INTERVAL_HOURS = 3;
+
+/** 정리 배치는 KST 0·3·…·21시 정각에 돈다 */
+export function nextOrganizeRunLabel(now = new Date()): string {
+  const kstHour = new Date(now.getTime() + KST_OFFSET_MS).getUTCHours();
+  const next = (Math.floor(kstHour / ORGANIZE_INTERVAL_HOURS) + 1) * ORGANIZE_INTERVAL_HOURS;
+  return `${pad(next % 24)}:00`;
 }
