@@ -7,14 +7,16 @@ import { ScreenLayout } from '@/components/layouts/ScreenLayout';
 import { BRAND, FONT, RADIUS, SPACE } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { HowItWorks } from './_components/HowItWorks';
-import { useEmailSignIn } from './_hooks/useEmailSignIn';
+import { GoogleButton } from './_components/GoogleButton';
+import { useSignIn } from './_hooks/useSignIn';
 import { EMAIL_PATTERN, MIN_CODE_LENGTH, type SignInStep } from './_types';
 
 const MARK_SIZE = 88;
 
 export default function SignInPage() {
-  const { colors, scheme } = useTheme();
-  const { requestCode, verifyCode } = useEmailSignIn();
+  const { colors, scheme, status } = useTheme();
+  const { google, requestCode, verifyCode } = useSignIn();
+  const [isEmailOpen, setIsEmailOpen] = useState(false);
   const [step, setStep] = useState<SignInStep>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -46,36 +48,46 @@ export default function SignInPage() {
           <HowItWorks />
 
           <View style={[styles.card, { backgroundColor: colors.bgSurface, borderColor: colors.border }]}>
-            {step === 'email' ? (
-              <>
-                <TextField
-                  label="이메일로 시작하기"
-                  placeholder="name@example.com"
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  value={email}
-                  onChangeText={(value) => {
-                    setEmail(value);
-                    setEmailError(null);
-                  }}
-                  errorText={emailError ?? requestCode.error?.message}
-                />
-                <Button label="로그인 링크 받기" variant="brand" isLoading={requestCode.isPending} onPress={handleRequestCode} />
-              </>
+            <GoogleButton onPress={() => google.mutate()} isLoading={google.isPending} />
+            {google.error ? <Text style={[FONT.caption, { color: status.cancelled.fg }]}>{`Google 로그인에 실패했어요. ${google.error.message}`}</Text> : null}
+
+            {isEmailOpen ? (
+              <View style={styles.emailForm}>
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                {step === 'email' ? (
+                  <>
+                    <TextField
+                      label="이메일로 시작하기"
+                      placeholder="name@example.com"
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      value={email}
+                      onChangeText={(value) => {
+                        setEmail(value);
+                        setEmailError(null);
+                      }}
+                      errorText={emailError ?? requestCode.error?.message}
+                    />
+                    <Button label="로그인 링크 받기" variant="secondary" isLoading={requestCode.isPending} onPress={handleRequestCode} />
+                  </>
+                ) : (
+                  <>
+                    <Text style={[FONT.body, { color: colors.textPrimary }]}>메일함을 확인해 주세요</Text>
+                    <Text style={[FONT.caption, { color: colors.textSecondary }]}>{`${email}로 보낸 메일의 로그인 링크를 이 폰에서 누르면 바로 들어와요. 메일에 코드가 있다면 아래에 입력해도 돼요.`}</Text>
+                    <TextField
+                      placeholder="메일로 받은 코드"
+                      keyboardType="number-pad"
+                      value={code}
+                      onChangeText={setCode}
+                      errorText={verifyCode.error ? '코드가 맞지 않아요. 다시 확인해 주세요' : null}
+                    />
+                    <Button label="로그인" variant="brand" isLoading={verifyCode.isPending} disabled={code.trim().length < MIN_CODE_LENGTH} onPress={handleVerify} />
+                    <Button label="이메일 다시 입력" variant="ghost" onPress={() => setStep('email')} />
+                  </>
+                )}
+              </View>
             ) : (
-              <>
-                <Text style={[FONT.body, { color: colors.textPrimary }]}>메일함을 확인해 주세요</Text>
-                <Text style={[FONT.caption, { color: colors.textSecondary }]}>{`${email}로 보낸 메일의 로그인 링크를 이 폰에서 누르면 바로 들어와요. 메일에 코드가 있다면 아래에 입력해도 돼요.`}</Text>
-                <TextField
-                  placeholder="메일로 받은 코드"
-                  keyboardType="number-pad"
-                  value={code}
-                  onChangeText={setCode}
-                  errorText={verifyCode.error ? '코드가 맞지 않아요. 다시 확인해 주세요' : null}
-                />
-                <Button label="로그인" variant="brand" isLoading={verifyCode.isPending} disabled={code.trim().length < MIN_CODE_LENGTH} onPress={handleVerify} />
-                <Button label="이메일 다시 입력" variant="ghost" onPress={() => setStep('email')} />
-              </>
+              <Button label="이메일로 로그인" variant="ghost" onPress={() => setIsEmailOpen(true)} />
             )}
           </View>
         </ScrollView>
@@ -90,4 +102,6 @@ const styles = StyleSheet.create({
   hero: { alignItems: 'center', gap: SPACE.sm },
   wordmark: { fontSize: 30, fontWeight: '700', letterSpacing: -0.5, marginTop: SPACE.sm },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: RADIUS.lg, padding: SPACE.lg, gap: SPACE.md },
+  emailForm: { gap: SPACE.md },
+  divider: { height: StyleSheet.hairlineWidth, marginVertical: SPACE.xs },
 });
