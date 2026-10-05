@@ -18,6 +18,9 @@ DEVICE=$("$ADB" devices | awk 'NR>1 && $2=="device" && $1 !~ /^emulator/ {print 
 [ -n "$DEVICE" ] || { echo "USB로 연결된 폰이 없어요 (USB 디버깅 확인)" >&2; exit 1; }
 "$ADB" -s "$DEVICE" reverse tcp:8081 tcp:8081
 cd apps/mobile
+# 개발 모드 번들은 .env.local 값을 셸 환경변수보다 우선하므로, dev 프로젝트 값으로 다시 쓴다
+printf 'EXPO_PUBLIC_SUPABASE_URL=%s\nEXPO_PUBLIC_SUPABASE_ANON_KEY=%s\n' \
+  "$EXPO_PUBLIC_SUPABASE_URL" "$EXPO_PUBLIC_SUPABASE_ANON_KEY" > .env.local
 if [ "${1:-}" = "build" ]; then
   npx expo prebuild -p android --clean --no-install
   (cd android && ANDROID_SERIAL="$DEVICE" ./gradlew :app:installDebug -x lint)
@@ -25,4 +28,4 @@ fi
 # 앱을 Metro(USB reverse)에 붙여서 연다
 "$ADB" -s "$DEVICE" shell am start -a android.intent.action.VIEW \
   -d "cherrypick-dev://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081" > /dev/null || true
-npx expo start --dev-client --port 8081
+npx expo start --dev-client --port 8081 --clear

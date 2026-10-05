@@ -38,7 +38,7 @@ pnpm exec supabase functions serve --env-file supabase/functions/.env
 
 `supabase/functions/.env`는 `supabase/functions/.env.example`을 복사해 만든다.
 
-앱 실행 (에뮬레이터 기준, `.env.local`에 로컬 값):
+앱 실행 (에뮬레이터 + 로컬 Docker Supabase 기준, `.env.local`에 로컬 값). 개발 모드 번들은 `.env.local`을 셸 환경변수보다 우선하고, `scripts/dev-phone.sh`는 실행할 때마다 `.env.local`을 dev 프로젝트 값으로 다시 쓴다:
 
 ```bash
 cp apps/mobile/.env.example apps/mobile/.env.local
