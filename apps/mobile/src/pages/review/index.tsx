@@ -22,7 +22,7 @@ import { usePendingDays } from './_hooks/usePendingDays';
 export default function ReviewPage() {
   const { colors } = useTheme();
   const { days, count, total, isLoading, refetch } = usePendingDays();
-  const { state: organizeState, runNow } = useOrganizeStatus();
+  const { state: organizeState, runNow, refresh: refreshOrganize } = useOrganizeStatus();
   const { decide } = useTransactionDecision();
   const sheetRef = useRef<BottomSheetModal>(null);
   const [opened, setOpened] = useState<Transaction | null>(null);
@@ -93,7 +93,7 @@ export default function ReviewPage() {
         sections={days.map((d) => ({ ...d, data: d.items }))}
         keyExtractor={(t) => t.id}
         stickySectionHeadersEnabled
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} />}
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={() => { refetch(); refreshOrganize(); }} />}
         renderSectionHeader={({ section }) => <DayHeader label={section.label} count={section.items.length} total={section.total} />}
         renderItem={({ item }) => (
           <SwipeableTransactionRow

@@ -17,11 +17,16 @@ export function DecisionSection({ transaction }: { transaction: Transaction }) {
   const { activeGroups, add: addGroup } = useGroups();
   const { decide } = useTransactionDecision();
   const [draft, setDraft] = useState<DecisionStatus>(transaction.status === 'auto_hidden' ? 'ignored' : transaction.status);
+  // 시트를 연 뒤 고른 값. 목록이 새로 고쳐지기 전에도 선택이 바로 보이게 한다
+  const [picked, setPicked] = useState<{ categoryId?: string; groupId?: string }>({});
   const [isAddingGroup, setIsAddingGroup] = useState(false);
+  const selectedCategoryId = picked.categoryId ?? transaction.category?.id;
+  const selectedGroupId = picked.groupId ?? (transaction.status === 'group' ? transaction.groupId : null);
   const [newGroupName, setNewGroupName] = useState('');
 
   const commit = (next: DecisionStatus, extra: { categoryId?: string; groupId?: string } = {}) => {
     setDraft(next);
+    setPicked((prev) => ({ ...prev, ...extra }));
     decide.mutate({ transaction, status: next, ...extra });
   };
 
@@ -57,7 +62,7 @@ export function DecisionSection({ transaction }: { transaction: Transaction }) {
               <Chip
                 key={c.id}
                 label={c.name}
-                selected={transaction.category?.id === c.id}
+                selected={selectedCategoryId === c.id}
                 tone={categoryTones[c.colorToken]}
                 onPress={() => commit('mine', { categoryId: c.id })}
               />
@@ -74,7 +79,7 @@ export function DecisionSection({ transaction }: { transaction: Transaction }) {
               <Chip
                 key={g.id}
                 label={g.name}
-                selected={transaction.status === 'group' && transaction.groupId === g.id}
+                selected={selectedGroupId === g.id}
                 tone={status.group}
                 onPress={() => commit('group', { groupId: g.id })}
               />

@@ -38,5 +38,10 @@ export function useOrganizeStatus() {
       ? { type: 'failed' }
       : { type: 'idle', unprocessedCount: unprocessed.data ?? 0, nextRunLabel: nextOrganizeRunLabel() };
 
-  return { state, runNow: () => run.mutate() };
+  const refresh = () => {
+    latestRun.refetch();
+    unprocessed.refetch();
+  };
+
+  return { state, runNow: () => run.mutate(), refresh };
 }

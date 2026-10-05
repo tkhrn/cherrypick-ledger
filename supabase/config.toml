@@ -422,3 +422,11 @@ verify_jwt = false
 
 [functions.daily-digest]
 verify_jwt = false
+
+[auth.email.template.magic_link]
+subject = "cherrypick 로그인 코드"
+content_path = "./supabase/templates/otp.html"
+
+[auth.email.template.confirmation]
+subject = "cherrypick 로그인 코드"
+content_path = "./supabase/templates/otp.html"

@@ -8,7 +8,7 @@ interface ButtonProps extends Omit<PressableProps, 'children'> {
   isLoading?: boolean;
 }
 
-export function Button({ label, variant = 'secondary', isLoading = false, style, ...rest }: ButtonProps) {
+export function Button({ label, variant = 'secondary', isLoading = false, disabled, style, ...rest }: ButtonProps) {
   const { colors } = useTheme();
   const isPrimary = variant === 'primary';
   const textColor = isPrimary ? colors.onAccent : colors.accent;
@@ -20,8 +20,11 @@ export function Button({ label, variant = 'secondary', isLoading = false, style,
         isPrimary && { backgroundColor: colors.accent },
         variant === 'secondary' && { borderWidth: 1, borderColor: colors.border },
         state.pressed && styles.pressed,
+        disabled && styles.disabled,
         typeof style === 'function' ? style(state) : style,
       ]}
+      disabled={disabled}
+      accessibilityState={{ disabled: Boolean(disabled) }}
       {...rest}
     >
       {isLoading ? <ActivityIndicator color={textColor} /> : <Text style={[FONT.body, styles.label, { color: textColor }]}>{label}</Text>}
@@ -33,4 +36,5 @@ const styles = StyleSheet.create({
   base: { minHeight: 44, borderRadius: RADIUS.md, paddingHorizontal: SPACE.lg, alignItems: 'center', justifyContent: 'center' },
   label: { fontWeight: '600' },
   pressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
+  disabled: { opacity: 0.4 },
 });

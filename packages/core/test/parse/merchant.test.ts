@@ -11,6 +11,11 @@ describe('guessMerchant', () => {
     expect(guessMerchant('고기굽는집에서 20,000원 결제했어요', 'payment')).toBe('고기굽는집');
   });
 
+  it('takes only the merchant words right before 에서 in a one-line SMS', () => {
+    expect(guessMerchant('[Web발신] 신한카드(1234)승인 홍*동 12,000원 일시불 스타벅스강남에서 12,000원 결제', 'payment')).toBe('스타벅스강남');
+    expect(guessMerchant('버거킹 강남역점에서 8,000원 결제', 'payment')).toBe('버거킹 강남역점');
+  });
+
   it('reads "N원 OOO 승인"', () => {
     expect(guessMerchant('12,000원 한솥도시락 승인', 'payment')).toBe('한솥도시락');
   });

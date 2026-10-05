@@ -1,6 +1,6 @@
 import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView, type BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
-import { forwardRef, useState } from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { BackHandler, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { TextField } from '@/components/atoms/TextField';
 import { FONT, SPACE } from '@/constants/theme';
@@ -29,10 +29,28 @@ interface TransactionSheetProps {
 export const TransactionSheet = forwardRef<BottomSheetModal, TransactionSheetProps>(function TransactionSheet({ transaction, onDismiss }, ref) {
   const { colors } = useTheme();
   const { height } = useWindowDimensions();
+  const sheetRef = useRef<BottomSheetModal>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  useImperativeHandle(ref, () => sheetRef.current as BottomSheetModal);
+
+  // 안드로이드 뒤로 가기는 앱을 나가지 않고 시트를 닫는다
+  useEffect(() => {
+    if (!isOpen) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      sheetRef.current?.dismiss();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [isOpen]);
+
   return (
     <BottomSheetModal
-      ref={ref}
-      onDismiss={onDismiss}
+      ref={sheetRef}
+      onChange={(index) => setIsOpen(index >= 0)}
+      onDismiss={() => {
+        setIsOpen(false);
+        onDismiss();
+      }}
       maxDynamicContentSize={height * MAX_SHEET_HEIGHT_RATIO}
       backgroundStyle={{ backgroundColor: colors.bgSurface }}
       handleIndicatorStyle={{ backgroundColor: colors.border }}
