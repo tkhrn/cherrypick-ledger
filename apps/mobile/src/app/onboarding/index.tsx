@@ -1,5 +1,1 @@
-import { Text } from 'react-native';
-
-export default function OnboardingPlaceholder() {
-  return <Text>onboarding</Text>;
-}
+export { default } from '@/pages/onboarding-permission';

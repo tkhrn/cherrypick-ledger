@@ -7,7 +7,8 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "sync:core": "scripts/sync-core.sh",
     "test:db": "supabase test db",
-    "test:functions": "scripts/sync-core.sh --check && scripts/test-functions.sh"
+    "test:functions": "scripts/sync-core.sh --check && scripts/test-functions.sh",
+    "gen:types": "supabase gen types typescript --local > apps/mobile/src/apis/database.types.ts"
   },
   "devDependencies": {
     "deno": "^2.9.6",
