@@ -13,6 +13,6 @@ export function event(overrides: Partial<ParsedEvent>): ParsedEvent {
 export function tx(overrides: Partial<TxSnapshot>): TxSnapshot {
   return {
     id: 't', kind: 'payment', amount: 5600, merchant: null, occurredAt: kst('12:00'),
-    status: 'pending', sourcePackages: ['sms'], cancelledAt: null, ...overrides,
+    status: 'pending', sourcePackages: ['sms'], cancelledAt: null, categoryId: null, reviewReason: null, ...overrides,
   };
 }

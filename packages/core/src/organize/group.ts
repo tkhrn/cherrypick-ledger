@@ -12,7 +12,11 @@ export interface TxSnapshot {
   status: TxStatus;
   sourcePackages: string[];
   cancelledAt: string | null;
+  categoryId: string | null;
+  reviewReason: ReviewReason | null;
 }
+
+export type ReviewReason = 'ambiguous_group' | 'missing_merchant' | 'unmatched_cancel' | 'parse_failed';
 
 export type GroupDecision = { type: 'attach'; txId: string; ambiguous: boolean } | { type: 'create' };
 
