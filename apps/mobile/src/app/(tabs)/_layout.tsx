@@ -1,11 +1,13 @@
 import { IconInbox, IconNotebook, IconSettings, IconWallet } from '@tabler/icons-react-native';
 import { Tabs } from 'expo-router';
+import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { useTheme } from '@/hooks/useTheme';
 
 const TAB_ICON_SIZE = 22;
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+  usePushRegistration();
   return (
     <Tabs
       screenOptions={{

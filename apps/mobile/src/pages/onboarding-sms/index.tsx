@@ -1,13 +1,7 @@
 import { router } from 'expo-router';
-import { PermissionsAndroid, Platform } from 'react-native';
 import { Button } from '@/components/atoms/Button';
 import { StepLayout } from '@/components/layouts/StepLayout';
-
-async function requestSmsPermission(): Promise<boolean> {
-  if (Platform.OS !== 'android') return false;
-  const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECEIVE_SMS);
-  return result === PermissionsAndroid.RESULTS.GRANTED;
-}
+import { requestSmsPermission } from '@/utils/smsPermission';
 
 export default function OnboardingSmsPage() {
   const goNext = (smsEnabled: boolean) => router.push({ pathname: '/onboarding/apps', params: { sms: smsEnabled ? '1' : '0' } });

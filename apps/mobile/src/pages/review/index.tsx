@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { ScreenLayout } from '@/components/layouts/ScreenLayout';
 import { OrganizeStatusBar } from '@/components/molecules/OrganizeStatusBar';
+import { CaptureBanner } from '@/components/organisms/CaptureBanner';
 import { SwipeableTransactionRow } from '@/components/organisms/SwipeableTransactionRow';
 import { TransactionSheet } from '@/components/organisms/TransactionSheet';
 import { FONT, SPACE } from '@/constants/theme';
@@ -73,6 +74,7 @@ export default function ReviewPage() {
 
   return (
     <ScreenLayout>
+      <CaptureBanner />
       {selectionMode ? (
         <SelectionBar count={selected.size} onMine={() => handleBulk('mine')} onIgnore={() => handleBulk('ignored')} onCancel={() => setSelected(new Set())} />
       ) : (

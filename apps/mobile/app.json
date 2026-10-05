@@ -29,12 +29,18 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "owner": "tkhrn"
+    "owner": "tkhrn",
+    "extra": {
+      "eas": {
+        "projectId": "4fdbdd5c-dbdf-4133-a9bb-4bf15059a1c8"
+      }
+    }
   }
 }
