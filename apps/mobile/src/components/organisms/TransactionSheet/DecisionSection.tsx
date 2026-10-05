@@ -34,7 +34,7 @@ export function DecisionSection({ draft, onChange, onIgnore }: DecisionSectionPr
 
   const handleCreateGroup = () => {
     const name = newGroupName.trim();
-    if (!name) return;
+    if (!name || addGroup.isPending) return;
     addGroup.mutate(name, {
       onSuccess: (group) => {
         setIsAddingGroup(false);
@@ -69,8 +69,9 @@ export function DecisionSection({ draft, onChange, onIgnore }: DecisionSectionPr
             <Chip label="+ 새 모임" dashed onPress={() => setIsAddingGroup(true)} />
           </ScrollView>
           {isAddingGroup ? (
-            <SheetTextField placeholder="모임 이름" autoFocus value={newGroupName} onChangeText={setNewGroupName} onSubmitEditing={handleCreateGroup} returnKeyType="done" />
+            <SheetTextField placeholder="모임 이름" autoFocus value={newGroupName} onChangeText={setNewGroupName} onSubmitEditing={handleCreateGroup} returnKeyType="done" editable={!addGroup.isPending} />
           ) : null}
+          {addGroup.error ? <Text style={[FONT.caption, { color: status.cancelled.fg }]}>모임을 만들지 못했어요. 다시 시도해 주세요</Text> : null}
         </View>
       ) : null}
     </View>

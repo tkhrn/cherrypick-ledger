@@ -16,6 +16,8 @@ interface TransactionRowProps {
   isCancelled: boolean;
   subtitle?: string;
   leading?: React.ReactNode;
+  /** 눌렸거나 시트를 여는 중일 때 배경을 한 톤 눌러 보여준다 */
+  highlighted?: boolean;
 }
 
 const FALLBACK_ICON: Record<TransactionKind, string> = {
@@ -26,11 +28,11 @@ const FALLBACK_ICON: Record<TransactionKind, string> = {
   unknown: 'help',
 };
 
-export function TransactionRow({ merchant, amount, kind, category, noticeCount, needsReview, isCancelled, subtitle, leading }: TransactionRowProps) {
+export function TransactionRow({ merchant, amount, kind, category, noticeCount, needsReview, isCancelled, subtitle, leading, highlighted = false }: TransactionRowProps) {
   const { colors, categories } = useTheme();
   const detail = [subtitle ?? category?.name, noticeCount > 1 ? `알림 ${noticeCount}개` : null].filter(Boolean).join(' · ');
   return (
-    <View style={[styles.row, { backgroundColor: colors.bgSurface, borderBottomColor: colors.border }]}>
+    <View style={[styles.row, { backgroundColor: highlighted ? colors.bgSubtle : colors.bgSurface, borderBottomColor: colors.border }]}>
       {leading ?? <CategoryIcon icon={category?.icon ?? FALLBACK_ICON[kind]} colorToken={category?.colorToken ?? 'cat-gray'} />}
       <View style={styles.texts}>
         <Text style={[FONT.body, { color: merchant ? colors.textPrimary : colors.textSecondary }]} numberOfLines={1}>

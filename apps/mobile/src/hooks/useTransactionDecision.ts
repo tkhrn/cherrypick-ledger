@@ -17,21 +17,23 @@ export interface Decision {
 
 type Snapshot = [readonly unknown[], TransactionDTO[] | undefined][];
 
+/** 결정 저장 요청. 카테고리를 안 고르면 기존 값을 유지하고, 모임은 모임장부로 보낼 때만 남긴다 */
+const toDecisionPayload = ({ transaction, status, categoryId, groupId, memo }: Decision, merchant: string | null) => ({
+  id: transaction.id,
+  status,
+  categoryId: categoryId ?? transaction.category?.id ?? null,
+  groupId: status === 'group' ? (groupId ?? transaction.groupId) : null,
+  memo: memo ?? null,
+  merchantKey: merchant ? merchantKey(merchant) : null,
+});
+
 /** 결제 건 결정(내 소비·모임장부·무시·되돌리기)과 묶음 조정(나누기·합치기) */
 export function useTransactionDecision() {
   const queryClient = useQueryClient();
   const refreshAll = () => queryClient.invalidateQueries({ queryKey: ['transactions'] });
 
   const decide = useMutation({
-    mutationFn: ({ transaction, status, categoryId, groupId, memo }: Decision) =>
-      updateTransactionDecision({
-        id: transaction.id,
-        status,
-        categoryId: categoryId ?? transaction.category?.id ?? null,
-        groupId: status === 'group' ? (groupId ?? transaction.groupId) : null,
-        memo: memo ?? null,
-        merchantKey: transaction.merchant ? merchantKey(transaction.merchant) : null,
-      }),
+    mutationFn: (decision: Decision) => updateTransactionDecision(toDecisionPayload(decision, decision.transaction.merchant)),
     onMutate: async ({ transaction, status, categoryId, groupId }): Promise<Snapshot> => {
       await queryClient.cancelQueries({ queryKey: ['transactions'] });
       const snapshot = queryClient.getQueriesData<TransactionDTO[]>({ queryKey: ['transactions'] });
@@ -55,17 +57,11 @@ export function useTransactionDecision() {
 
   // 상세 시트의 저장: 가게 이름을 고쳤으면 먼저 반영하고, 결정·카테고리·모임·메모를 저장한다
   const save = useMutation({
-    mutationFn: async ({ transaction, status, categoryId, groupId, memo, merchant }: Decision & { merchant: string }) => {
+    mutationFn: async ({ merchant, ...decision }: Decision & { merchant: string }) => {
+      const { transaction } = decision;
       const nextMerchant = merchant.trim() || transaction.merchant;
       if (nextMerchant && nextMerchant !== transaction.merchant) await updateTransactionMerchant(transaction.id, nextMerchant);
-      await updateTransactionDecision({
-        id: transaction.id,
-        status,
-        categoryId: categoryId ?? transaction.category?.id ?? null,
-        groupId: status === 'group' ? (groupId ?? transaction.groupId) : null,
-        memo: memo ?? null,
-        merchantKey: nextMerchant ? merchantKey(nextMerchant) : null,
-      });
+      await updateTransactionDecision(toDecisionPayload(decision, nextMerchant));
     },
     onSettled: refreshAll,
   });

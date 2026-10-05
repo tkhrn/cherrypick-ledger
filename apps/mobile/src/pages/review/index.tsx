@@ -11,7 +11,7 @@ import { TransactionSheet } from '@/components/organisms/TransactionSheet';
 import { FONT, SPACE } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTransactionDecision } from '@/hooks/useTransactionDecision';
-import type { Transaction } from '@/types/transaction';
+import type { DecisionStatus, Transaction } from '@/types/transaction';
 import { formatDayKey, todayKstDayKey } from '@/utils/kstDate';
 import { formatWon } from '@/utils/won';
 import { DayHeader } from './_components/DayHeader';
@@ -27,18 +27,28 @@ export default function ReviewPage() {
   const { decide } = useTransactionDecision();
   const sheetRef = useRef<BottomSheetModal>(null);
   const [opened, setOpened] = useState<Transaction | null>(null);
+  const [openingId, setOpeningId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [undo, setUndo] = useState<{ message: string; transactions: Transaction[] } | null>(null);
   const selectionMode = selected.size > 0;
 
   const openSheet = (t: Transaction) => {
     setOpened(t);
-    sheetRef.current?.present();
+    setOpeningId(t.id);
+    // 시트 내용을 그리는 동안 화면이 멈추므로, 행의 스피너가 먼저 그려지게 한 프레임 미룬다
+    requestAnimationFrame(() => sheetRef.current?.present());
+  };
+  const clearOpening = () => setOpeningId(null);
+
+  // 실패한 건은 목록에 되돌아오므로, 스낵바도 실패 안내로 바꿔 알린다
+  const decideAll = async (transactions: Transaction[], status: DecisionStatus) => {
+    const results = await Promise.allSettled(transactions.map((transaction) => decide.mutateAsync({ transaction, status })));
+    if (results.some((r) => r.status === 'rejected')) setUndo({ message: '처리하지 못한 건이 있어요. 다시 시도해 주세요', transactions: [] });
   };
 
   const decideMany = (transactions: Transaction[], status: 'mine' | 'ignored', message: string) => {
-    transactions.forEach((transaction) => decide.mutate({ transaction, status }));
     setUndo({ message, transactions });
+    decideAll(transactions, status);
   };
 
   const handleSwipeMine = (t: Transaction) => {
@@ -65,8 +75,9 @@ export default function ReviewPage() {
   };
 
   const handleUndo = () => {
-    undo?.transactions.forEach((transaction) => decide.mutate({ transaction, status: 'pending' }));
+    if (!undo) return;
     setUndo(null);
+    decideAll(undo.transactions, 'pending');
   };
   const hideUndo = useCallback(() => setUndo(null), []);
 
@@ -101,6 +112,7 @@ export default function ReviewPage() {
             transaction={item}
             selectionMode={selectionMode}
             selected={selected.has(item.id)}
+            isOpening={openingId === item.id}
             onSwipeMine={() => handleSwipeMine(item)}
             onSwipeIgnore={() => decideMany([item], 'ignored', '무시했어요')}
             onPress={() => (selectionMode ? toggleSelected(item.id) : openSheet(item))}
@@ -112,8 +124,16 @@ export default function ReviewPage() {
         contentContainerStyle={styles.listContent}
       />
 
-      <UndoSnackbar message={undo?.message ?? null} onUndo={handleUndo} onHide={hideUndo} />
-      <TransactionSheet ref={sheetRef} transaction={openedLatest} onDismiss={() => setOpened(null)} />
+      <UndoSnackbar message={undo?.message ?? null} onUndo={undo?.transactions.length ? handleUndo : undefined} onHide={hideUndo} />
+      <TransactionSheet
+        ref={sheetRef}
+        transaction={openedLatest}
+        onAppear={clearOpening}
+        onDismiss={() => {
+          setOpened(null);
+          clearOpening();
+        }}
+      />
     </ScreenLayout>
   );
 }

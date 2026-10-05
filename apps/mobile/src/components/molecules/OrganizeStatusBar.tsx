@@ -3,11 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/atoms/Button';
 import { FONT, RADIUS, SPACE } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-
-export type OrganizeState =
-  | { type: 'idle'; unprocessedCount: number; nextRunLabel: string }
-  | { type: 'running' }
-  | { type: 'failed' };
+import type { OrganizeState } from '@/types/organize';
 
 interface OrganizeStatusBarProps {
   state: OrganizeState;

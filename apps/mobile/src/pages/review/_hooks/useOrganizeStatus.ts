@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createOrganizeRun } from '@/apis/organize';
 import { getLatestOrganizeRun } from '@/apis/organize_runs';
 import { getUnprocessedCount } from '@/apis/raw_notifications';
-import type { OrganizeState } from '@/components/molecules/OrganizeStatusBar';
+import type { OrganizeState } from '@/types/organize';
 import { nextOrganizeRunLabel } from '@/utils/kstDate';
 
 const STALE_RUN_MS = 10 * 60 * 1000;

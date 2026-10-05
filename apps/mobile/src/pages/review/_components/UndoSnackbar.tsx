@@ -7,7 +7,8 @@ const VISIBLE_MS = 4000;
 
 interface UndoSnackbarProps {
   message: string | null;
-  onUndo: () => void;
+  /** 없으면 되돌리기 버튼을 숨긴다 (실패 안내처럼 되돌릴 게 없을 때) */
+  onUndo?: () => void;
   onHide: () => void;
 }
 
@@ -24,9 +25,11 @@ export function UndoSnackbar({ message, onUndo, onHide }: UndoSnackbarProps) {
   return (
     <View accessibilityLiveRegion="polite" style={[styles.bar, { backgroundColor: colors.textPrimary }]}>
       <Text style={[FONT.body, styles.grow, { color: colors.bgSurface }]}>{message}</Text>
-      <Pressable onPress={onUndo} hitSlop={SPACE.sm}>
-        <Text style={[FONT.body, styles.action, { color: colors.bgSurface }]}>되돌리기</Text>
-      </Pressable>
+      {onUndo ? (
+        <Pressable onPress={onUndo} hitSlop={SPACE.sm}>
+          <Text style={[FONT.body, styles.action, { color: colors.bgSurface }]}>되돌리기</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

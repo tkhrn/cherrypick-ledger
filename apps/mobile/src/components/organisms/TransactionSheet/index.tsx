@@ -27,9 +27,11 @@ const MAX_SHEET_HEIGHT_RATIO = 0.9;
 interface TransactionSheetProps {
   transaction: Transaction | null;
   onDismiss: () => void;
+  /** 시트가 화면에 올라오기 시작할 때 (열기 대기 표시를 끄는 시점) */
+  onAppear?: () => void;
 }
 
-export const TransactionSheet = forwardRef<BottomSheetModal, TransactionSheetProps>(function TransactionSheet({ transaction, onDismiss }, ref) {
+export const TransactionSheet = forwardRef<BottomSheetModal, TransactionSheetProps>(function TransactionSheet({ transaction, onDismiss, onAppear }, ref) {
   const { colors } = useTheme();
   const { height } = useWindowDimensions();
   const sheetRef = useRef<BottomSheetModal>(null);
@@ -50,6 +52,9 @@ export const TransactionSheet = forwardRef<BottomSheetModal, TransactionSheetPro
     <BottomSheetModal
       ref={sheetRef}
       onChange={(index) => setIsOpen(index >= 0)}
+      onAnimate={(fromIndex, toIndex) => {
+        if (fromIndex < 0 && toIndex >= 0) onAppear?.();
+      }}
       onDismiss={() => {
         setIsOpen(false);
         onDismiss();

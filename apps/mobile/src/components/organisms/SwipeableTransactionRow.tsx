@@ -1,10 +1,10 @@
 import { IconCheck, IconEyeOff } from '@tabler/icons-react-native';
 import * as Haptics from 'expo-haptics';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { CategoryIcon } from '@/components/atoms/CategoryIcon';
 import { TransactionRow } from '@/components/molecules/TransactionRow';
-import { RADIUS, SPACE } from '@/constants/theme';
+import { ICON_CIRCLE, RADIUS, SPACE } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import type { Transaction } from '@/types/transaction';
 
@@ -12,6 +12,8 @@ interface SwipeableTransactionRowProps {
   transaction: Transaction;
   selectionMode: boolean;
   selected: boolean;
+  /** 이 행의 상세 시트가 뜨는 중. 시트가 올라오기 시작할 때까지 스피너를 보여준다 */
+  isOpening: boolean;
   onSwipeMine: () => void;
   onSwipeIgnore: () => void;
   onPress: () => void;
@@ -21,7 +23,7 @@ interface SwipeableTransactionRowProps {
 const SWIPE_THRESHOLD = 0.35;
 const ROW_WIDTH_ESTIMATE = 360;
 
-export function SwipeableTransactionRow({ transaction: t, selectionMode, selected, onSwipeMine, onSwipeIgnore, onPress, onLongPress }: SwipeableTransactionRowProps) {
+export function SwipeableTransactionRow({ transaction: t, selectionMode, selected, isOpening, onSwipeMine, onSwipeIgnore, onPress, onLongPress }: SwipeableTransactionRowProps) {
   const { colors, status } = useTheme();
 
   const handleOpen = (direction: 'left' | 'right') => {
@@ -36,18 +38,36 @@ export function SwipeableTransactionRow({ transaction: t, selectionMode, selecte
     </View>
   );
 
+  const spinner = (
+    <View style={styles.spinner}>
+      <ActivityIndicator size="small" color={colors.textSecondary} />
+    </View>
+  );
+  const categoryIcon = t.category ? <CategoryIcon icon={t.category.icon} colorToken={t.category.colorToken} /> : undefined;
+  const leading = isOpening ? spinner : selectionMode ? checkbox : categoryIcon;
+
   const row = (
-    <Pressable onPress={onPress} onLongPress={onLongPress} accessibilityHint="밀어서 내 소비 또는 무시로 처리">
-      <TransactionRow
-        merchant={t.merchant}
-        amount={t.amount}
-        kind={t.kind}
-        category={t.category}
-        noticeCount={t.notices.length}
-        needsReview={t.needsReview}
-        isCancelled={t.cancelledAt !== null}
-        leading={selectionMode ? checkbox : t.category ? <CategoryIcon icon={t.category.icon} colorToken={t.category.colorToken} /> : undefined}
-      />
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      disabled={isOpening}
+      accessibilityRole="button"
+      accessibilityState={{ busy: isOpening, selected: selectionMode ? selected : undefined }}
+      accessibilityHint="밀어서 내 소비 또는 무시로 처리"
+    >
+      {({ pressed }) => (
+        <TransactionRow
+          merchant={t.merchant}
+          amount={t.amount}
+          kind={t.kind}
+          category={t.category}
+          noticeCount={t.notices.length}
+          needsReview={t.needsReview}
+          isCancelled={t.cancelledAt !== null}
+          highlighted={pressed || isOpening}
+          leading={leading}
+        />
+      )}
     </Pressable>
   );
 
@@ -78,5 +98,6 @@ const styles = StyleSheet.create({
   action: { flex: 1, justifyContent: 'center', paddingHorizontal: SPACE.xl },
   left: { alignItems: 'flex-start' },
   right: { alignItems: 'flex-end' },
+  spinner: { width: ICON_CIRCLE, height: ICON_CIRCLE, alignItems: 'center', justifyContent: 'center' },
   checkbox: { width: 22, height: 22, margin: 5, borderRadius: RADIUS.sm, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
 });

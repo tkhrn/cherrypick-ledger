@@ -14,8 +14,8 @@ interface SettingsRowProps {
 
 export function SettingsRow({ label, value, onPress, trailing, children }: SettingsRowProps) {
   const { colors } = useTheme();
-  const content = (
-    <View style={[styles.row, { backgroundColor: colors.bgSurface, borderBottomColor: colors.border }]}>
+  const content = (pressed: boolean) => (
+    <View style={[styles.row, { backgroundColor: pressed ? colors.bgSubtle : colors.bgSurface, borderBottomColor: colors.border }]}>
       <View style={styles.line}>
         <Text style={[FONT.body, styles.grow, { color: colors.textPrimary }]}>{label}</Text>
         {value ? <Text style={[FONT.body, { color: colors.textSecondary }]}>{value}</Text> : null}
@@ -24,7 +24,7 @@ export function SettingsRow({ label, value, onPress, trailing, children }: Setti
       {children}
     </View>
   );
-  return onPress ? <Pressable onPress={onPress}>{content}</Pressable> : content;
+  return onPress ? <Pressable onPress={onPress}>{({ pressed }) => content(pressed)}</Pressable> : content(false);
 }
 
 const styles = StyleSheet.create({

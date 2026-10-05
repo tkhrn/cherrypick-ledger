@@ -14,7 +14,7 @@ const MERGE_WINDOW_MS = 60 * 60 * 1000;
 
 /** 원본 알림 목록과 나누기·합치기 */
 export function NoticesSection({ transaction, onRegrouped }: { transaction: Transaction; onRegrouped: () => void }) {
-  const { colors } = useTheme();
+  const { colors, status } = useTheme();
   const appLabel = useAppLabel();
   const { split, merge } = useTransactionDecision();
   const { transactions: pending } = useTransactions({ status: 'pending' });
@@ -59,6 +59,7 @@ export function NoticesSection({ transaction, onRegrouped }: { transaction: Tran
         ) : undefined}
       />
       {isSplitting ? <Button label="따로 분리" variant="primary" disabled={!canSubmitSplit} isLoading={split.isPending} onPress={handleSplit} /> : null}
+      {isSplitting && split.error ? <Text style={[FONT.caption, { color: status.cancelled.fg }]}>나누지 못했어요. 다시 시도해 주세요</Text> : null}
 
       {transaction.status === 'pending' && mergeCandidates.length > 0 ? (
         <View style={styles.merge}>
@@ -67,11 +68,17 @@ export function NoticesSection({ transaction, onRegrouped }: { transaction: Tran
           </Pressable>
           {isMerging
             ? mergeCandidates.map((c) => (
-                <Pressable key={c.id} onPress={() => merge.mutate({ targetId: transaction.id, sourceId: c.id }, { onSuccess: onRegrouped })}>
-                  <TransactionRow merchant={c.merchant} amount={c.amount} kind={c.kind} category={c.category} noticeCount={c.notices.length} needsReview={false} isCancelled={false} />
+                <Pressable key={c.id} disabled={merge.isPending} onPress={() => merge.mutate({ targetId: transaction.id, sourceId: c.id }, { onSuccess: onRegrouped })}>
+                  {({ pressed }) => (
+                    <TransactionRow
+                      merchant={c.merchant} amount={c.amount} kind={c.kind} category={c.category} noticeCount={c.notices.length} needsReview={false} isCancelled={false}
+                      highlighted={pressed || (merge.isPending && merge.variables?.sourceId === c.id)}
+                    />
+                  )}
                 </Pressable>
               ))
             : null}
+          {merge.error ? <Text style={[FONT.caption, { color: status.cancelled.fg }]}>합치지 못했어요. 다시 시도해 주세요</Text> : null}
         </View>
       ) : null}
     </View>
