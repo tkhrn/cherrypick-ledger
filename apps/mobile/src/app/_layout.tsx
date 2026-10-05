@@ -33,7 +33,6 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="auth-callback" />
       <Stack.Protected guard={route === 'sign-in'}>
         <Stack.Screen name="sign-in" />
       </Stack.Protected>
@@ -44,6 +43,8 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="setup" />
       </Stack.Protected>
+      {/* 메일 로그인 링크가 여는 화면. 보호되지 않은 화면이라 맨 뒤에 둬야 시작 화면으로 잘못 열리지 않는다 */}
+      <Stack.Screen name="auth-callback" />
     </Stack>
   );
 }
