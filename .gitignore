@@ -1,0 +1,16 @@
+node_modules/
+.superpowers/
+.DS_Store
+*.log
+.env
+.env.local
+coverage/
+dist/
+# expo
+apps/mobile/.expo/
+apps/mobile/android/
+apps/mobile/ios/
+# supabase
+supabase/.branches/
+supabase/.temp/
+supabase/functions/.env

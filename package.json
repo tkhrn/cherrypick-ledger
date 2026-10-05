@@ -1,0 +1,9 @@
+{
+  "name": "cherrypick-ledger",
+  "private": true,
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck"
+  }
+}
