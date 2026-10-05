@@ -1,3 +1,4 @@
+import { KeyboardLayout } from '@/components/layouts/KeyboardLayout';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/atoms/Button';
@@ -29,6 +30,7 @@ export default function SetupCategoriesPage() {
   };
 
   return (
+    <KeyboardLayout>
     <ScrollView style={{ backgroundColor: colors.bgPage }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       {categories.map((c) => (
         <View key={c.id} style={[styles.row, { backgroundColor: colors.bgSurface, borderBottomColor: colors.border, opacity: c.archived ? 0.5 : 1 }]}>
@@ -65,6 +67,7 @@ export default function SetupCategoriesPage() {
         <Button label="카테고리 추가" onPress={handleAdd} isLoading={add.isPending} />
       </View>
     </ScrollView>
+    </KeyboardLayout>
   );
 }
 

@@ -4,7 +4,7 @@ import { createMergedTransaction } from '@/apis/merge_transactions';
 import { createSplitTransaction } from '@/apis/split_transaction';
 import { updateTransactionDecision } from '@/apis/decide_transaction';
 import type { CategoryDTO } from '@/apis/categories';
-import type { TransactionDTO } from '@/apis/transactions';
+import { updateTransactionMerchant, type TransactionDTO } from '@/apis/transactions';
 import type { DecisionStatus, Transaction } from '@/types/transaction';
 
 export interface Decision {
@@ -53,6 +53,23 @@ export function useTransactionDecision() {
     onSettled: refreshAll,
   });
 
+  // 상세 시트의 저장: 가게 이름을 고쳤으면 먼저 반영하고, 결정·카테고리·모임·메모를 저장한다
+  const save = useMutation({
+    mutationFn: async ({ transaction, status, categoryId, groupId, memo, merchant }: Decision & { merchant: string }) => {
+      const nextMerchant = merchant.trim() || transaction.merchant;
+      if (nextMerchant && nextMerchant !== transaction.merchant) await updateTransactionMerchant(transaction.id, nextMerchant);
+      await updateTransactionDecision({
+        id: transaction.id,
+        status,
+        categoryId: categoryId ?? transaction.category?.id ?? null,
+        groupId: status === 'group' ? (groupId ?? transaction.groupId) : null,
+        memo: memo ?? null,
+        merchantKey: nextMerchant ? merchantKey(nextMerchant) : null,
+      });
+    },
+    onSettled: refreshAll,
+  });
+
   const split = useMutation({
     mutationFn: ({ transactionId, eventIds }: { transactionId: string; eventIds: string[] }) => createSplitTransaction(transactionId, eventIds),
     onSettled: refreshAll,
@@ -63,5 +80,5 @@ export function useTransactionDecision() {
     onSettled: refreshAll,
   });
 
-  return { decide, split, merge };
+  return { decide, save, split, merge };
 }

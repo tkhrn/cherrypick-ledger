@@ -1,8 +1,9 @@
-import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView, type BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
+import { BottomSheetBackdrop, BottomSheetModal, BottomSheetScrollView, useBottomSheetModal, type BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { BackHandler, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { BackHandler, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
-import { TextField } from '@/components/atoms/TextField';
+import { Button } from '@/components/atoms/Button';
+import { SheetTextField } from '@/components/molecules/SheetTextField';
 import { FONT, SPACE } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import { useTransactionDecision } from '@/hooks/useTransactionDecision';
@@ -10,6 +11,7 @@ import type { ReviewReason, Transaction } from '@/types/transaction';
 import { dayLabel, kstDayKey, kstTime, todayKstDayKey } from '@/utils/kstDate';
 import { formatWon } from '@/utils/won';
 import { DecisionSection } from './DecisionSection';
+import { canSave, initialDraft, type SheetDraft } from './draft';
 import { NoticesSection } from './NoticesSection';
 
 const REVIEW_REASON_TEXT: Record<ReviewReason, string> = {
@@ -56,6 +58,9 @@ export const TransactionSheet = forwardRef<BottomSheetModal, TransactionSheetPro
       handleIndicatorStyle={{ backgroundColor: colors.border }}
       backdropComponent={(props: BottomSheetBackdropProps) => <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />}
       enableDynamicSizing
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
     >
       <BottomSheetScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {transaction ? <SheetContent key={transaction.id} transaction={transaction} onRegrouped={onDismiss} /> : null}
@@ -65,20 +70,36 @@ export const TransactionSheet = forwardRef<BottomSheetModal, TransactionSheetPro
 });
 
 function SheetContent({ transaction: t, onRegrouped }: { transaction: Transaction; onRegrouped: () => void }) {
-  const { colors } = useTheme();
-  const { decide } = useTransactionDecision();
-  const [memo, setMemo] = useState(t.memo ?? '');
+  const { colors, status } = useTheme();
+  const { dismiss } = useBottomSheetModal();
+  const { save } = useTransactionDecision();
+  const [start] = useState(() => initialDraft(t));
+  const [draft, setDraft] = useState<SheetDraft>(start);
+  const [isEditingName, setIsEditingName] = useState(false);
   const isCancelled = t.cancelledAt !== null;
+  const change = (patch: Partial<SheetDraft>) => setDraft((prev) => ({ ...prev, ...patch }));
 
-  const handleMemoBlur = () => {
-    if ((t.memo ?? '') === memo || t.status === 'auto_hidden') return;
-    decide.mutate({ transaction: t, status: t.status, memo });
-  };
+  const submit = (next: SheetDraft) =>
+    save.mutate(
+      { transaction: t, status: next.status, categoryId: next.categoryId, groupId: next.groupId, memo: next.memo, merchant: next.merchant },
+      { onSuccess: () => dismiss() },
+    );
 
   return (
     <View style={styles.inner}>
       <View style={styles.title}>
-        <Text style={[FONT.title, styles.grow, { color: colors.textPrimary }]} numberOfLines={2}>{t.merchant ?? '가게 이름 없음'}</Text>
+        {isEditingName ? (
+          <View style={styles.grow}>
+            <SheetTextField placeholder="가게 이름" autoFocus value={draft.merchant} onChangeText={(merchant) => change({ merchant })} onSubmitEditing={() => setIsEditingName(false)} returnKeyType="done" />
+          </View>
+        ) : (
+          <Pressable style={styles.grow} accessibilityRole="button" accessibilityHint="가게 이름 고치기" onPress={() => setIsEditingName(true)}>
+            <Text style={[FONT.title, { color: draft.merchant ? colors.textPrimary : colors.textSecondary }]} numberOfLines={2}>
+              {draft.merchant || '가게 이름 없음'}
+            </Text>
+            <Text style={[FONT.caption, { color: colors.accent }]}>{draft.merchant ? '이름 고치기' : '눌러서 가게 이름 입력'}</Text>
+          </Pressable>
+        )}
         <Text style={[FONT.amountLarge, { color: isCancelled ? colors.textMuted : colors.textPrimary, textDecorationLine: isCancelled ? 'line-through' : 'none' }]}>
           {formatWon(t.amount)}
         </Text>
@@ -89,8 +110,10 @@ function SheetContent({ transaction: t, onRegrouped }: { transaction: Transactio
       {isCancelled ? <StatusBadge tone="cancelled" label="승인취소됨" /> : null}
       {t.needsReview && t.reviewReason ? <StatusBadge tone="review" label={REVIEW_REASON_TEXT[t.reviewReason]} /> : null}
 
-      <DecisionSection transaction={t} />
-      <TextField placeholder="메모" value={memo} onChangeText={setMemo} onBlur={handleMemoBlur} />
+      <DecisionSection draft={draft} onChange={change} onIgnore={() => submit({ ...draft, status: 'ignored' })} />
+      <SheetTextField placeholder="메모" value={draft.memo} onChangeText={(memo) => change({ memo })} />
+      <Button label="저장" variant="primary" disabled={!canSave(draft, start)} isLoading={save.isPending} onPress={() => submit(draft)} />
+      {save.error ? <Text style={[FONT.caption, { color: status.cancelled.fg }]}>저장하지 못했어요. 다시 시도해 주세요</Text> : null}
       <NoticesSection transaction={t} onRegrouped={onRegrouped} />
     </View>
   );

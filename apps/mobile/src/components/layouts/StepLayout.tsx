@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { FONT, SPACE } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
+import { KeyboardLayout } from './KeyboardLayout';
 import { ScreenLayout } from './ScreenLayout';
 
 interface StepLayoutProps {
@@ -15,12 +16,14 @@ export function StepLayout({ title, description, children, footer }: StepLayoutP
   const { colors } = useTheme();
   return (
     <ScreenLayout edges={['top', 'bottom']}>
+      <KeyboardLayout>
       <View style={styles.header}>
         <Text style={[FONT.title, { color: colors.textPrimary }]}>{title}</Text>
         <Text style={[FONT.body, { color: colors.textSecondary }]}>{description}</Text>
       </View>
       <View style={styles.body}>{children}</View>
       <View style={styles.footer}>{footer}</View>
+      </KeyboardLayout>
     </ScreenLayout>
   );
 }

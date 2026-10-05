@@ -1,3 +1,4 @@
+import { KeyboardLayout } from '@/components/layouts/KeyboardLayout';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/atoms/Button';
@@ -17,6 +18,7 @@ export default function SetupGroupsPage() {
   };
 
   return (
+    <KeyboardLayout>
     <ScrollView style={{ backgroundColor: colors.bgPage }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       {groups.length === 0 ? <Text style={[FONT.caption, styles.empty, { color: colors.textSecondary }]}>아직 모임이 없어요. 아래에서 추가하거나 정리할 때 만들 수 있어요.</Text> : null}
       {groups.map((g) => (
@@ -32,6 +34,7 @@ export default function SetupGroupsPage() {
         <Button label="모임 추가" onPress={handleAdd} isLoading={add.isPending} />
       </View>
     </ScrollView>
+    </KeyboardLayout>
   );
 }
 

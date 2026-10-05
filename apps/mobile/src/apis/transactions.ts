@@ -1,4 +1,4 @@
-import { supabase, unwrapList } from './supabase';
+import { supabase, unwrap, unwrapList } from './supabase';
 
 export const TRANSACTION_SELECT =
   'id, kind, amount, merchant, occurred_at, status, auto_hidden_reason, group_id, memo, needs_review, review_reason, cancelled_at, ' +
@@ -30,4 +30,9 @@ export async function getTransactions(filter: { status: StatusFilter; from?: str
   if (filter.to) query = query.lt('occurred_at', filter.to);
   if (filter.groupId) query = query.eq('group_id', filter.groupId);
   return unwrapList(await query) as unknown as TransactionDTO[];
+}
+
+/** 가게 이름 직접 고치기 */
+export async function updateTransactionMerchant(id: string, merchant: string) {
+  unwrap(await supabase.from('transactions').update({ merchant }).eq('id', id));
 }

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/atoms/Button';
 import { CherryMark } from '@/components/atoms/CherryMark';
 import { TextField } from '@/components/atoms/TextField';
+import { KeyboardLayout } from '@/components/layouts/KeyboardLayout';
 import { ScreenLayout } from '@/components/layouts/ScreenLayout';
 import { BRAND, FONT, RADIUS, SPACE } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
@@ -37,7 +38,7 @@ export default function SignInPage() {
 
   return (
     <ScreenLayout edges={['top', 'bottom']} background={pageBackground}>
-      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardLayout>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
             <CherryMark size={MARK_SIZE} />
@@ -91,13 +92,12 @@ export default function SignInPage() {
             )}
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardLayout>
     </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  fill: { flex: 1 },
   content: { flexGrow: 1, justifyContent: 'center', padding: SPACE.xl, gap: SPACE.xl },
   hero: { alignItems: 'center', gap: SPACE.sm },
   wordmark: { fontSize: 30, fontWeight: '700', letterSpacing: -0.5, marginTop: SPACE.sm },
