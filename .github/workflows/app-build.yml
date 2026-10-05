@@ -1,0 +1,82 @@
+# dev에 push(merge) → 개발용 앱(development) 빌드, main에 push(merge) → 배포용 APK(preview) 빌드
+# 빌드는 EAS 서버에서 돌고, 이 워크플로는 테스트 후 빌드를 요청만 한다 (--no-wait)
+name: App build
+
+on:
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+
+concurrency:
+  group: app-build-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: scripts/sync-core.sh --check
+      - run: pnpm -C packages/core test
+      - run: pnpm -C apps/mobile typecheck
+      - run: pnpm -C apps/mobile lint
+      - run: pnpm -C apps/mobile test --ci
+
+  build:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 빌드할지 정하기
+        id: decide
+        env:
+          BEFORE: ${{ github.event.before }}
+          HAS_TOKEN: ${{ secrets.EXPO_TOKEN != '' }}
+        run: |
+          if [ "$HAS_TOKEN" != "true" ]; then
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "EXPO_TOKEN 시크릿이 없어 빌드를 건너뛴다" >> "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            echo "profile=preview" >> "$GITHUB_OUTPUT"; echo "build=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "profile=development" >> "$GITHUB_OUTPUT"
+          # 개발용 앱은 네이티브 부분이 바뀔 때만 새로 빌드한다. JS만 바뀌면 Metro로 바로 받으므로 빌드 쿼터를 아낀다.
+          if [ "$GITHUB_EVENT_NAME" != "push" ] || [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
+            echo "build=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          NATIVE='^(apps/mobile/(app\.json|app\.config\.ts|eas\.json|package\.json|modules/|assets/images/|plugins/)|pnpm-lock\.yaml$)'
+          if git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -Eq "$NATIVE"; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "네이티브 변경이 없어 개발용 앱 빌드를 건너뛴다" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - if: steps.decide.outputs.build == 'true'
+        uses: pnpm/action-setup@v4
+      - if: steps.decide.outputs.build == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - if: steps.decide.outputs.build == 'true'
+        run: pnpm install --frozen-lockfile
+      - if: steps.decide.outputs.build == 'true'
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - if: steps.decide.outputs.build == 'true'
+        working-directory: apps/mobile
+        run: |
+          eas build -p android --profile "${{ steps.decide.outputs.profile }}" --non-interactive --no-wait \
+            --message "${GITHUB_REF_NAME}@${GITHUB_SHA::7}" | tee build.log
+          grep -o 'https://expo.dev/[^ ]*builds/[^ ]*' build.log | head -1 | sed 's/^/EAS 빌드: /' >> "$GITHUB_STEP_SUMMARY" || true
