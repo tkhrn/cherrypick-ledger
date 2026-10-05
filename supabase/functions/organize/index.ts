@@ -1,4 +1,4 @@
-import { createGeminiClient, runOrganize } from '@core';
+import { createGeminiClient, runOrganize } from '../_shared/core/index.ts';
 import { isCronCall } from '../_shared/cron.ts';
 import { json } from '../_shared/http.ts';
 import { createAdminClient } from '../_shared/supabaseAdmin.ts';

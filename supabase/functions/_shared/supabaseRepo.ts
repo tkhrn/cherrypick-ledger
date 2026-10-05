@@ -1,6 +1,6 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
-import type { OrganizeRepository, ParsedEvent, PendingRaw, TxCreate, TxPatch, TxSnapshot } from '@core';
-import { MAX_PARSE_ATTEMPTS } from '@core';
+import type { OrganizeRepository, ParsedEvent, PendingRaw, TxCreate, TxPatch, TxSnapshot } from './core/index.ts';
+import { MAX_PARSE_ATTEMPTS } from './core/index.ts';
 
 function check<T>(result: { data: T; error: { message: string } | null }): T {
   if (result.error) throw new Error(result.error.message);
