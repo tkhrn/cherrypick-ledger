@@ -5,6 +5,7 @@ import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from '
 import { ScreenLayout } from '@/components/layouts/ScreenLayout';
 import { OrganizeStatusBar } from '@/components/molecules/OrganizeStatusBar';
 import { CaptureBanner } from '@/components/organisms/CaptureBanner';
+import { HistoryImportCard } from '@/components/organisms/HistoryImportCard';
 import { SwipeableTransactionRow } from '@/components/organisms/SwipeableTransactionRow';
 import { TransactionSheet } from '@/components/organisms/TransactionSheet';
 import { FONT, SPACE } from '@/constants/theme';
@@ -126,6 +127,9 @@ function EmptyState() {
       <Pressable onPress={() => router.push('/setup/hidden')} hitSlop={SPACE.sm}>
         <Text style={[FONT.caption, { color: colors.accent }]}>숨긴 건 보기</Text>
       </Pressable>
+      <View style={styles.importCard}>
+        <HistoryImportCard />
+      </View>
     </View>
   );
 }
@@ -135,4 +139,5 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   listContent: { flexGrow: 1, paddingBottom: 80 },
   empty: { alignItems: 'center', gap: SPACE.sm, paddingTop: 96, paddingHorizontal: SPACE.xl },
+  importCard: { alignSelf: 'stretch', marginTop: SPACE.xl },
 });

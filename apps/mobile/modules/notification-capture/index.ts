@@ -39,3 +39,13 @@ export function flushCapture(): void {
 export function clearCapture(): void {
   NativeCapture?.clear();
 }
+
+/** 지난 days일 동안 받은 결제·이체 문자를 대기열에 넣는다. 새로 넣은 개수를 돌려준다 (READ_SMS 권한 필요) */
+export async function importPastSms(days: number): Promise<number> {
+  return (await NativeCapture?.importSms(days)) ?? 0;
+}
+
+/** 아직 알림창에 남아 있는, 고른 앱의 알림을 대기열에 넣는다 */
+export function importActiveNotifications(): number {
+  return NativeCapture?.importActiveNotifications() ?? 0;
+}

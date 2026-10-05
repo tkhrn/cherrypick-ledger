@@ -11,6 +11,6 @@ class SmsReceiver : BroadcastReceiver() {
     val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
     val first = messages.firstOrNull() ?: return
     val body = messages.joinToString("") { it.messageBody.orEmpty() }
-    Capture.record(context, CaptureFilter.SMS_SOURCE, first.originatingAddress.orEmpty(), body, first.timestampMillis)
+    Capture.record(context, CaptureFilter.SMS_SOURCE, HistoryImporter.SMS_TITLE, body, first.timestampMillis)
   }
 }

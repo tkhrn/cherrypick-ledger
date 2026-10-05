@@ -33,7 +33,8 @@ class CaptureStore(context: Context) : SQLiteOpenHelper(context, "cherrypick_cap
 
   override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
 
-  fun insert(sourcePackage: String, title: String, body: String, postedAtMs: Long) {
+  /** 새로 넣었으면 true, 이미 있던 알림이면 false */
+  fun insert(sourcePackage: String, title: String, body: String, postedAtMs: Long): Boolean {
     val values = ContentValues().apply {
       put("source_package", sourcePackage)
       put("title", title)
@@ -41,7 +42,7 @@ class CaptureStore(context: Context) : SQLiteOpenHelper(context, "cherrypick_cap
       put("posted_at_ms", postedAtMs)
       put("dedupe_key", DedupeKey.of(sourcePackage, postedAtMs, title, body))
     }
-    writableDatabase.insertWithOnConflict("queue", null, values, SQLiteDatabase.CONFLICT_IGNORE)
+    return writableDatabase.insertWithOnConflict("queue", null, values, SQLiteDatabase.CONFLICT_IGNORE) != -1L
   }
 
   fun peek(limit: Int): List<QueuedNotification> =

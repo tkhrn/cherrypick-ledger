@@ -66,6 +66,10 @@ class NotificationCaptureModule : Module() {
       CaptureConfig(context).clear()
     }
 
+    AsyncFunction("importSms") { days: Int -> HistoryImporter.importSms(context, days) }
+
+    Function("importActiveNotifications") { HistoryImporter.importActiveNotifications(context) }
+
     Function("flushNow") {
       UploadWorker.enqueue(context)
     }

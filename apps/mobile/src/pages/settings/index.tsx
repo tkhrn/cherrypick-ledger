@@ -4,6 +4,7 @@ import { Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-nativ
 import { Chip } from '@/components/atoms/Chip';
 import { ScreenLayout } from '@/components/layouts/ScreenLayout';
 import { SectionHeader } from '@/components/molecules/SectionHeader';
+import { HistoryImportCard } from '@/components/organisms/HistoryImportCard';
 import { SettingsRow } from '@/components/molecules/SettingsRow';
 import { FONT, SPACE } from '@/constants/theme';
 import { useAiUsage } from '@/hooks/useAiUsage';
@@ -28,6 +29,7 @@ export default function SettingsPage() {
   const { reconnect, isReconnecting } = useDeviceRegistration();
   const signOut = useSignOut();
   const [isPickingHour, setIsPickingHour] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const digestTime = settings?.digest_time.slice(0, 5) ?? '21:00';
 
   const handleSmsToggle = async (enabled: boolean) => {
@@ -56,6 +58,9 @@ export default function SettingsPage() {
           ) : null}
         </SettingsRow>
         <SettingsRow label="배터리 최적화 예외" onPress={() => Linking.openSettings()} />
+        <SettingsRow label="지난 결제 문자" value={isImportOpen ? '닫기' : '가져오기'} onPress={() => setIsImportOpen((v) => !v)}>
+          {isImportOpen ? <HistoryImportCard framed={false} /> : null}
+        </SettingsRow>
 
         <SectionHeader title="정리" />
         <SettingsRow label="내 계좌" onPress={() => router.push('/setup/accounts')} />

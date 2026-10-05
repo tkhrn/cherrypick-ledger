@@ -10,6 +10,8 @@ declare class NotificationCaptureNative extends NativeModule<Record<string, neve
   getStatus(): CaptureStatus;
   flushNow(): void;
   clear(): void;
+  importSms(days: number): Promise<number>;
+  importActiveNotifications(): number;
 }
 
 /** 안드로이드 개발 빌드에서만 존재한다. Expo Go·iOS·테스트에서는 null. */
