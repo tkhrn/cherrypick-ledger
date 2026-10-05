@@ -17,7 +17,7 @@ supabase/
   functions/            ingest · organize · daily-digest (Deno)
   functions/_shared/core/   packages/core 복사본 (scripts/sync-core.sh로 생성)
   tests/database/       pgTAP
-scripts/                sync-core.sh, test-functions.sh
+scripts/                deploy.sh, dev-phone.sh, sync-core.sh, test-functions.sh …
 ```
 
 ## 로컬 개발
@@ -80,61 +80,60 @@ cd apps/mobile/android && ./gradlew :notification-capture:testDebugUnitTest
 pnpm sync:core
 ```
 
-## 원격 배포 (직접 해야 하는 단계)
+## 원격 배포
 
-키·비밀번호가 들어가는 단계라 직접 실행한다. Supabase 프로젝트 ref는 `kabcpknnqmbowueoklrz`.
+Supabase 프로젝트는 둘로 나뉜다 (ref는 `scripts/env.sh`).
 
-1. Supabase CLI 로그인과 프로젝트 연결
+| 환경 | 프로젝트 | 쓰는 앱 |
+|---|---|---|
+| `dev` | `cherrypick-ledger-dev` (`musbctrurxvtalwqpxlk`) | Cherrypick (dev) — `scripts/dev-phone.sh`, EAS `development` |
+| `prod` | `cherrypick-ledger` (`kabcpknnqmbowueoklrz`) | Cherrypick — EAS `preview` APK |
 
-   ```bash
-   pnpm exec supabase login
-   ```
-
-   ```bash
-   pnpm exec supabase link --project-ref kabcpknnqmbowueoklrz
-   ```
-
-2. 스키마 반영
+1. 스키마·함수·AI 모델·cron용 Vault 값을 한 번에 반영 (cron 비밀값은 마이그레이션이 Vault에 자동 생성)
 
    ```bash
-   pnpm exec supabase db push
+   ./scripts/deploy.sh dev
    ```
-
-3. Edge Function 비밀값. `CRON_SECRET`은 아무 긴 랜덤 문자열(예: `openssl rand -hex 32`)
 
    ```bash
-   pnpm exec supabase secrets set GEMINI_API_KEY=발급받은키 AI_MODEL=gemini-flash-latest CRON_SECRET=랜덤문자열
+   ./scripts/deploy.sh prod
    ```
 
-4. cron이 함수를 부를 수 있도록 Vault에 두 값 저장 (대시보드 SQL Editor에서 실행, 3번과 같은 `CRON_SECRET`)
-
-   ```sql
-   select vault.create_secret('https://kabcpknnqmbowueoklrz.supabase.co', 'project_url');
-   select vault.create_secret('랜덤문자열', 'cron_secret');
-   ```
-
-5. 함수 배포
+2. Gemini 키 (입력은 화면에 보이지 않음)
 
    ```bash
-   pnpm sync:core && pnpm exec supabase functions deploy
+   ./scripts/set-gemini-key.sh dev
    ```
 
-6. 로그인 링크가 앱을 열도록: 대시보드 → Authentication → URL Configuration → Redirect URLs에 `cherrypick://**` 추가 (무료 플랜은 메일 템플릿 수정이 안 돼서 기본 메일의 로그인 링크를 쓴다)
+3. 대시보드 → Authentication → URL Configuration → Redirect URLs: prod에는 `cherrypick://**`, dev에는 `cherrypick-dev://**`
 
-6-1. Google 로그인: Google Cloud Console에서 OAuth 동의 화면(외부, 테스트 사용자에 내 Gmail)과 웹 애플리케이션 클라이언트를 만들고, 승인된 리디렉션 URI에 `https://kabcpknnqmbowueoklrz.supabase.co/auth/v1/callback`을 넣는다. 받은 Client ID·Secret을 대시보드 → Authentication → Sign In / Providers → Google에 넣고 켠다.
+4. Google 로그인: Google Cloud Console에서 OAuth 동의 화면(외부, 테스트 사용자에 내 Gmail)과 웹 애플리케이션 클라이언트를 만들고, 승인된 리디렉션 URI에 `https://<ref>.supabase.co/auth/v1/callback`을 환경마다 넣는다. Client ID·Secret을 각 프로젝트의 대시보드 → Authentication → Sign In / Providers → Google에 넣고 켠다.
 
-7. **가입 막기 (중요)**: 앱(APK)에는 anon 키가 들어 있어서 누구나 계정을 만들 수 있고, 그러면 내 Gemini 키를 같이 쓰게 돼요. 내 계정으로 처음 로그인한 뒤 대시보드 → Authentication → Sign In / Providers에서 **Allow new users to sign up**을 끈다.
+5. **가입 막기 (선택)**: 앱(APK)에는 anon 키가 들어 있어서 APK를 받은 누구나 계정을 만들 수 있고, 그러면 내 Gemini 키를 같이 쓰게 된다. APK를 남에게 줄 거라면 대시보드 → Authentication → Sign In / Providers에서 **Allow new users to sign up**을 끈다.
 
-8. 앱 빌드 (EAS 프로젝트 `@tkhrn/cherrypick-ledger`)
+6. EAS 환경변수 (`development` → dev, `preview` → prod)
 
-   - EAS 환경변수에 `EXPO_PUBLIC_SUPABASE_URL`(`https://kabcpknnqmbowueoklrz.supabase.co`)과 `EXPO_PUBLIC_SUPABASE_ANON_KEY`(대시보드 → Settings → API Keys의 publishable/anon 키)를 `preview`·`development` 환경으로 등록한다.
-   - 정리 알림 푸시를 받으려면 Firebase 프로젝트를 만들고 FCM V1 서비스 계정 키를 EAS Credentials에 올린다 (`npx eas-cli@latest credentials`). 없어도 앱은 동작하고 푸시만 오지 않는다.
+   ```bash
+   ./scripts/setup-eas-env.sh
+   ```
+
+   정리 알림 푸시를 받으려면 Firebase 프로젝트를 만들고 FCM V1 서비스 계정 키를 EAS Credentials에 올린다 (`npx eas-cli@latest credentials`). 없어도 앱은 동작하고 푸시만 오지 않는다.
+
+7. 개발용 앱을 USB로 연결한 폰에 띄우기 (EAS 쿼터를 쓰지 않음)
+
+   ```bash
+   ./scripts/dev-phone.sh build
+   ```
+
+   JS만 고쳤으면 `./scripts/dev-phone.sh`로 Metro만 띄운다.
+
+8. 배포용 APK
 
    ```bash
    cd apps/mobile && npx eas-cli@latest build -p android --profile preview
    ```
 
-   만들어진 APK를 폰에 설치한다. 첫 설정에서 알림 접근 권한을 켜고, 설정 → 배터리 최적화 예외를 켜 두면 수집이 멈추지 않는다. 실기기 확인 항목은 [`apps/mobile/modules/notification-capture/CHECKLIST.md`](apps/mobile/modules/notification-capture/CHECKLIST.md).
+   첫 설정에서 알림 접근 권한을 켜고, 설정 → 배터리 최적화 예외를 켜 두면 수집이 멈추지 않는다. 실기기 확인 항목은 [`apps/mobile/modules/notification-capture/CHECKLIST.md`](apps/mobile/modules/notification-capture/CHECKLIST.md).
 
 ## 운영 첫 1주
 
