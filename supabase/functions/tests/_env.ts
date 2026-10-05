@@ -32,3 +32,13 @@ export function ingest(deviceKey: string, items: unknown[]) {
     body: JSON.stringify({ items }),
   });
 }
+
+export const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? 'local-cron-secret';
+
+export function callFunction(name: string, token: string, body: unknown = {}) {
+  return fetch(`${FUNCTIONS_URL}/${name}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+}

@@ -416,3 +416,9 @@ enabled = true
 
 [functions.ingest]
 verify_jwt = false
+
+[functions.organize]
+verify_jwt = false
+
+[functions.daily-digest]
+verify_jwt = false

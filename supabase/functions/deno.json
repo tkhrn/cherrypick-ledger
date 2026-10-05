@@ -1,6 +1,6 @@
 {
   "imports": {
-    "@core": "../../packages/core/src/index.ts"
+    "@core": "./_shared/core/index.ts"
   },
   "tasks": {
     "test": "deno test --allow-net --allow-env --allow-read tests/"

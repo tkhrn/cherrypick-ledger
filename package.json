@@ -4,7 +4,10 @@
   "packageManager": "pnpm@10.33.2",
   "scripts": {
     "test": "pnpm -r --if-present test",
-    "typecheck": "pnpm -r --if-present typecheck"
+    "typecheck": "pnpm -r --if-present typecheck",
+    "sync:core": "scripts/sync-core.sh",
+    "test:db": "supabase test db",
+    "test:functions": "scripts/sync-core.sh --check && scripts/test-functions.sh"
   },
   "devDependencies": {
     "deno": "^2.9.6",
