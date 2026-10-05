@@ -49,6 +49,8 @@ export interface OrganizeResult {
   failed: number;
   aiCalls: number;
   aiUsage: AiUsage;
+  /** AI 호출이 실패한 이유 ("이름: 메시지"). 프롬프트·알림 문구는 담지 않는다 */
+  aiError: string | null;
 }
 
 export const MAX_PARSE_ATTEMPTS = 3;
@@ -73,6 +75,12 @@ const needsCategory = (e: ParsedEvent) => e.kind === 'payment' && e.merchant !==
 function applyAiOutput(item: Item, output: AiParseOutput) {
   const { event } = item.result;
   if (!item.result.needsAi) return;
+  if (output.kind === 'unknown') {
+    // AI가 결제 알림이 아니라고 판단 (광고 문구 속 금액 등): 결제 건을 만들지 않는다
+    item.result.isFinancial = false;
+    event.kind = 'unknown';
+    return;
+  }
   if (event.kind === 'unknown' && output.kind) event.kind = output.kind;
   if (event.merchant === null && output.merchant) {
     event.merchant = output.merchant;
@@ -168,8 +176,10 @@ async function processItem(ctx: Context, { result }: Item) {
   if (e.kind === 'cancel') {
     const target = matchCancel(e, ctx.txs);
     if (target) {
-      target.cancelledAt = e.occurredAt;
-      await ctx.repo.updateTransaction(target.id, { cancelledAt: e.occurredAt });
+      if (target.cancelledAt === null) {
+        target.cancelledAt = e.occurredAt;
+        await ctx.repo.updateTransaction(target.id, { cancelledAt: e.occurredAt });
+      }
       await ctx.repo.saveParsedEvent(e, target.id);
     } else {
       const tx = await createTx(ctx, e, { needsReview: true, reviewReason: 'unmatched_cancel' });
@@ -189,13 +199,19 @@ async function processItem(ctx: Context, { result }: Item) {
 }
 
 async function giveUp(ctx: Context, item: Item) {
-  const e = item.result.event;
-  await createTx(ctx, { ...e, kind: 'unknown' }, { kind: 'unknown', status: 'pending', autoHiddenReason: null, needsReview: true, reviewReason: 'parse_failed' });
+  const e: ParsedEvent = { ...item.result.event, kind: 'unknown' };
+  const tx = await createTx(ctx, e, { kind: 'unknown', status: 'pending', autoHiddenReason: null, needsReview: true, reviewReason: 'parse_failed' });
+  try {
+    // 원본 알림을 확인할 수 있도록 연결해 둔다 (실패해도 결제 건은 남긴다)
+    await ctx.repo.saveParsedEvent(e, tx.id);
+  } catch {
+    // 이미 여러 번 실패한 알림이다. 원본 연결 없이 확인 필요로 둔다.
+  }
 }
 
 export async function runOrganize(repo: OrganizeRepository, opts: OrganizeOptions): Promise<OrganizeResult> {
   const raws = await repo.fetchUnprocessed(opts.batchLimit ?? DEFAULT_BATCH_LIMIT);
-  const result: OrganizeResult = { processed: 0, failed: 0, aiCalls: 0, aiUsage: { inputTokens: 0, outputTokens: 0 } };
+  const result: OrganizeResult = { processed: 0, failed: 0, aiCalls: 0, aiUsage: { inputTokens: 0, outputTokens: 0 }, aiError: null };
   if (raws.length === 0) return result;
 
   const since = new Date(Date.parse(opts.now) - LOOKBACK_MS).toISOString();
@@ -217,26 +233,27 @@ export async function runOrganize(repo: OrganizeRepository, opts: OrganizeOption
         result.aiCalls = 1;
         result.aiUsage = enriched.usage;
       }
-    } catch {
-      // AI 실패는 배치를 멈추지 않는다. 해당 건은 needs_review로 남는다.
+    } catch (error) {
+      // AI 실패는 배치를 멈추지 않는다. 해당 건은 needs_review로 남고, 이유는 실행 기록에 남긴다.
+      result.aiError = error instanceof Error ? `${error.name}: ${error.message}` : 'unknown AI error';
     }
   }
 
   const ctx: Context = { repo, txs, myLast4s, memory, aiCategoryByRaw };
-  const processedIds: string[] = [];
   const retryIds: string[] = [];
 
+  // 알림 하나를 끝낼 때마다 처리 완료를 남긴다. 배치가 중간에 죽어도 다음 실행이 같은 알림을 다시 만들지 않는다.
   for (const item of items) {
     try {
       await processItem(ctx, item);
-      processedIds.push(item.raw.id);
+      await repo.markProcessed([item.raw.id]);
       result.processed += 1;
     } catch {
       result.failed += 1;
       if (item.raw.attempts + 1 >= MAX_PARSE_ATTEMPTS) {
         try {
           await giveUp(ctx, item);
-          processedIds.push(item.raw.id);
+          await repo.markProcessed([item.raw.id]);
         } catch {
           retryIds.push(item.raw.id);
         }
@@ -246,7 +263,6 @@ export async function runOrganize(repo: OrganizeRepository, opts: OrganizeOption
     }
   }
 
-  if (processedIds.length > 0) await repo.markProcessed(processedIds);
   if (retryIds.length > 0) await repo.incrementAttempts(retryIds);
   return result;
 }

@@ -42,9 +42,17 @@ describe('runOrganize', () => {
   it('auto-hides transfers to my own account', async () => {
     const repo = new MemoryRepo();
     repo.myLast4s = ['3456'];
-    repo.raws = [raw('r1', 'sms', '[Web발신]\n신한 10/05 19:30\n110-***-123456\n출금 30,000원\n잔액 1,000원\n홍길동')];
+    repo.raws = [raw('r1', 'sms', '[Web발신]\n신한 10/05 19:30\n출금 30,000원\n입금계좌 국민 123-***-3456\n홍길동')];
     await run(repo);
     expect(repo.txs[0]).toMatchObject({ status: 'auto_hidden', autoHiddenReason: 'own_transfer' });
+  });
+
+  it('keeps a transfer that only shows my sending account', async () => {
+    const repo = new MemoryRepo();
+    repo.myLast4s = ['3456'];
+    repo.raws = [raw('r1', 'sms', '[Web발신]\n신한 10/05 19:30\n110-***-123456\n출금 30,000원\n잔액 1,000원\n김철수')];
+    await run(repo);
+    expect(repo.txs[0]).toMatchObject({ status: 'pending', merchant: '김철수' });
   });
 
   it('auto-hides deposits', async () => {
@@ -178,5 +186,57 @@ describe('runOrganize', () => {
     await run(repo);
     expect(repo.txs).toHaveLength(2);
     expect(repo.txs.find((t) => t.reviewReason === 'ambiguous_group')).toBeDefined();
+  });
+
+  it('attaches a second app\'s notice of the same cancellation instead of flagging it', async () => {
+    const repo = new MemoryRepo();
+    repo.raws = [raw('r1', 'com.card', '스타벅스에서 12,000원 결제', '2026-10-05T10:42:00Z')];
+    await run(repo);
+    repo.raws.push(
+      raw('r2', 'com.card', '스타벅스 12,000원 승인취소', '2026-10-05T11:10:00Z'),
+      raw('r3', 'sms', '[Web발신] 스타벅스 12,000원 승인취소', '2026-10-05T11:10:30Z'),
+    );
+    await run(repo);
+
+    expect(repo.txs).toHaveLength(1);
+    expect(repo.events.filter((e) => e.event.kind === 'cancel').map((e) => e.transactionId)).toEqual([repo.txs[0]?.id, repo.txs[0]?.id]);
+  });
+
+  it('marks each notification processed as soon as it is handled', async () => {
+    const repo = new MemoryRepo();
+    repo.raws = [
+      raw('r1', 'com.card', '스타벅스에서 5,600원 결제', '2026-10-05T10:40:00Z'),
+      raw('r2', 'com.card', '한솥도시락에서 7,800원 결제', '2026-10-05T10:50:00Z'),
+    ];
+    await run(repo);
+    expect(repo.log).toEqual(['create:t1', 'processed:r1', 'create:t2', 'processed:r2']);
+  });
+
+  it('reports why AI failed', async () => {
+    const repo = new MemoryRepo();
+    repo.raws = [raw('r1', 'com.card', 'KB국민카드 승인 7,800원')];
+    const ai: AiClient = { analyze: async () => { throw new Error('Gemini request failed: 400'); } };
+    const result = await run(repo, ai);
+    expect(result.aiError).toBe('Error: Gemini request failed: 400');
+  });
+
+  it('drops an item AI judges not to be a payment', async () => {
+    const repo = new MemoryRepo();
+    repo.raws = [raw('r1', 'viva.republica.toss', '친구 초대하면 최대 10,000원 받기')];
+    const ai = aiReturning([{ id: 'r1', kind: 'unknown', merchant: null }]);
+    await run(repo, ai);
+    expect(repo.txs).toHaveLength(0);
+    expect(repo.events).toEqual([expect.objectContaining({ transactionId: null })]);
+    expect(repo.processed).toEqual(['r1']);
+  });
+
+  it('keeps the source notice on a transaction it gave up parsing', async () => {
+    const repo = new MemoryRepo();
+    repo.raws = [raw('bad', 'com.pay', '한솥도시락에서 7,800원 결제', '2026-10-05T10:46:00Z', 2)];
+    repo.failSaveFor.add('bad');
+    repo.failSaveOnce = true;
+    await run(repo);
+    const failed = repo.txs.find((t) => t.reviewReason === 'parse_failed');
+    expect(repo.events.find((e) => e.event.rawId === 'bad')?.transactionId).toBe(failed?.id);
   });
 });

@@ -7,6 +7,7 @@ describe('detectKind', () => {
     ['결제 취소 완료', 'cancel'],
     ['국민 입금 50,000원', 'deposit'],
     ['우리 출금 30,000원', 'transfer_out'],
+    ['출금 30,000원 입금계좌 국민 123-***-3456', 'transfer_out'],
     ['이체 완료', 'transfer_out'],
     ['송금 30,000원', 'transfer_out'],
     ['김철수님에게 30,000원 보냈어요', 'transfer_out'],

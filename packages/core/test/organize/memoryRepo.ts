@@ -16,6 +16,9 @@ export class MemoryRepo implements OrganizeRepository {
   categories = [{ id: 'c-food', name: '식비' }, { id: 'c-cafe', name: '카페·간식' }];
   memory = new Map<string, string>();
   failSaveFor = new Set<string>();
+  log: string[] = [];
+  /** true면 failSaveFor의 저장 실패는 한 번만 일어난다 */
+  failSaveOnce = false;
   private seq = 0;
 
   async fetchUnprocessed() {
@@ -39,6 +42,7 @@ export class MemoryRepo implements OrganizeRepository {
   }
   async createTransaction(t: TxCreate) {
     const id = `t${++this.seq}`;
+    this.log.push(`create:${id}`);
     this.txs.push({ ...t, id, cancelledAt: null });
     return id;
   }
@@ -47,10 +51,14 @@ export class MemoryRepo implements OrganizeRepository {
     if (tx) Object.assign(tx, patch);
   }
   async saveParsedEvent(event: ParsedEvent, transactionId: string | null) {
-    if (this.failSaveFor.has(event.rawId)) throw new Error('boom');
+    if (this.failSaveFor.has(event.rawId)) {
+      if (this.failSaveOnce) this.failSaveFor.delete(event.rawId);
+      throw new Error('boom');
+    }
     this.events.push({ event, transactionId });
   }
   async markProcessed(ids: string[]) {
+    this.log.push(`processed:${ids.join(',')}`);
     this.processed.push(...ids);
   }
   async incrementAttempts(ids: string[]) {

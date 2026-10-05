@@ -80,7 +80,7 @@ class UploadWorker(context: Context, params: WorkerParameters) : Worker(context,
   }
 
   companion object {
-    private const val WORK_NAME = "cherrypick-upload"
+    const val WORK_NAME = "cherrypick-upload"
     private const val BATCH_SIZE = 100
     private const val TIMEOUT_MS = 15_000
     private const val BACKOFF_SECONDS = 30L

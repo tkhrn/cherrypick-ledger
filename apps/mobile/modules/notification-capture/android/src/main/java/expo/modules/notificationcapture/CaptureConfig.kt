@@ -29,4 +29,9 @@ class CaptureConfig(context: Context) {
   var lastUploadError: String?
     get() = prefs.getString("last_upload_error", null)
     set(value) = prefs.edit().putString("last_upload_error", value).apply()
+
+  /** 로그아웃: 업로드 키와 상태를 지운다. 수집 대상(앱 목록)은 다음 로그인 때 다시 맞춘다 */
+  fun clear() {
+    prefs.edit().remove("ingest_url").remove("device_key").remove("last_upload_error").remove("last_captured_at").apply()
+  }
 }

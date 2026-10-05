@@ -9,6 +9,7 @@ declare class NotificationCaptureNative extends NativeModule<Record<string, neve
   setSources(packages: string[], smsEnabled: boolean): void;
   getStatus(): CaptureStatus;
   flushNow(): void;
+  clear(): void;
 }
 
 /** 안드로이드 개발 빌드에서만 존재한다. Expo Go·iOS·테스트에서는 null. */

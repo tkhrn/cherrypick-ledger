@@ -2,7 +2,7 @@ import type { EventKind } from '../types.ts';
 
 const KIND_KEYWORDS: [Exclude<EventKind, 'unknown'>, RegExp][] = [
   ['cancel', /취소/],
-  ['deposit', /입금|받았어요|들어왔어요/],
+  ['deposit', /입금(?!\s?계좌)|받았어요|들어왔어요/],
   ['transfer_out', /출금|이체|송금|보냈어요/],
   ['payment', /승인|결제|사용/],
 ];

@@ -12,5 +12,5 @@ export function useUserSettings({ enabled = true }: { enabled?: boolean } = {}) 
     mutationFn: updateUserSettings,
     onSettled: () => queryClient.invalidateQueries({ queryKey: userSettingsKey }),
   });
-  return { settings: query.data ?? null, isLoading: query.isLoading, save };
+  return { settings: query.data ?? null, isLoading: query.isLoading, status: query.status, refetch: query.refetch, save };
 }

@@ -121,7 +121,9 @@ pnpm sync:core
 
 6. 로그인 메일에 6자리 코드가 나오게 하기: 대시보드 → Authentication → Emails → Magic Link 템플릿 본문에 `{{ .Token }}`을 넣는다.
 
-7. 앱 빌드 (EAS 프로젝트 `@tkhrn/cherrypick-ledger`)
+7. **가입 막기 (중요)**: 앱(APK)에는 anon 키가 들어 있어서 누구나 계정을 만들 수 있고, 그러면 내 Gemini 키를 같이 쓰게 돼요. 내 계정으로 처음 로그인한 뒤 대시보드 → Authentication → Sign In / Providers에서 **Allow new users to sign up**을 끈다.
+
+8. 앱 빌드 (EAS 프로젝트 `@tkhrn/cherrypick-ledger`)
 
    - EAS 환경변수에 `EXPO_PUBLIC_SUPABASE_URL`(`https://kabcpknnqmbowueoklrz.supabase.co`)과 `EXPO_PUBLIC_SUPABASE_ANON_KEY`(대시보드 → Settings → API Keys의 publishable/anon 키)를 `preview`·`development` 환경으로 등록한다.
    - 정리 알림 푸시를 받으려면 Firebase 프로젝트를 만들고 FCM V1 서비스 계정 키를 EAS Credentials에 올린다 (`npx eas-cli@latest credentials`). 없어도 앱은 동작하고 푸시만 오지 않는다.

@@ -2,11 +2,15 @@ import { captureHealth } from './captureHealth';
 
 const HOUR = 60 * 60 * 1000;
 const now = Date.parse('2026-10-05T12:00:00Z');
-const base = { isAvailable: true, isGranted: true, lastCapturedAt: now - HOUR, dismissedAt: null, now };
+const base = { isAvailable: true, isConfigured: true, isGranted: true, lastCapturedAt: now - HOUR, dismissedAt: null, now };
 
 describe('captureHealth', () => {
   it('is healthy when access is on and capture is recent', () => {
     expect(captureHealth(base)).toBeNull();
+  });
+
+  it('flags a device that is not connected for upload', () => {
+    expect(captureHealth({ ...base, isConfigured: false })).toBe('not_configured');
   });
 
   it('flags turned-off notification access', () => {

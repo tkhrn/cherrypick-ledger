@@ -56,5 +56,9 @@ class CaptureStore(context: Context) : SQLiteOpenHelper(context, "cherrypick_cap
     writableDatabase.delete("queue", "id in (${ids.joinToString(",") { "?" }})", ids.map { it.toString() }.toTypedArray())
   }
 
+  fun clear() {
+    writableDatabase.delete("queue", null, null)
+  }
+
   fun count(): Int = readableDatabase.rawQuery("select count(*) from queue", null).use { c -> if (c.moveToFirst()) c.getInt(0) else 0 }
 }

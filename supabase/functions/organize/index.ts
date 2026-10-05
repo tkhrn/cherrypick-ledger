@@ -23,9 +23,10 @@ async function organizeUser(admin: SupabaseClient, userId: string, trigger: 'cro
     const aiAllowed = (callsThisMonth ?? 0) < (settings?.ai_monthly_call_cap ?? 0);
 
     const result = await runOrganize(createSupabaseRepo(admin, userId), { now: new Date().toISOString(), ai, aiAllowed });
+    if (result.aiError) console.error('organize ai failed', userId, result.aiError);
     await admin.rpc('finish_organize_run', {
       p_run: runId, p_status: 'succeeded', p_processed: result.processed, p_failed: result.failed, p_ai_calls: result.aiCalls,
-      p_ai_input: result.aiUsage.inputTokens, p_ai_output: result.aiUsage.outputTokens, p_error: null,
+      p_ai_input: result.aiUsage.inputTokens, p_ai_output: result.aiUsage.outputTokens, p_error: null, p_ai_error: result.aiError,
     });
     return { status: 'succeeded' as RunStatus, processed: result.processed };
   } catch (error) {

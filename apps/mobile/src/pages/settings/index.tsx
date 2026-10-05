@@ -6,8 +6,9 @@ import { ScreenLayout } from '@/components/layouts/ScreenLayout';
 import { SectionHeader } from '@/components/molecules/SectionHeader';
 import { SettingsRow } from '@/components/molecules/SettingsRow';
 import { FONT, SPACE } from '@/constants/theme';
-import { deleteSession } from '@/apis/auth';
 import { useAiUsage } from '@/hooks/useAiUsage';
+import { useDeviceRegistration } from '@/hooks/useDeviceRegistration';
+import { useSignOut } from '@/hooks/useSignOut';
 import { useCaptureHealth } from '@/hooks/useCaptureHealth';
 import { useCaptureSources } from '@/hooks/useCaptureSources';
 import { useTheme } from '@/hooks/useTheme';
@@ -23,7 +24,9 @@ export default function SettingsPage() {
   const { settings, save } = useUserSettings();
   const { enabledApps, smsEnabled, save: saveSources } = useCaptureSources();
   const capture = useCaptureHealth();
-  const { calls, cap } = useAiUsage();
+  const { calls, cap, lastError: aiError } = useAiUsage();
+  const { reconnect, isReconnecting } = useDeviceRegistration();
+  const signOut = useSignOut();
   const [isPickingHour, setIsPickingHour] = useState(false);
   const digestTime = settings?.digest_time.slice(0, 5) ?? '21:00';
 
@@ -46,8 +49,10 @@ export default function SettingsPage() {
         <SettingsRow label="알림 접근" value={capture.isAvailable ? (capture.isGranted ? '켜짐' : '꺼짐') : '개발 빌드 필요'} />
         <SettingsRow label="마지막 수집" value={lastCaptured} />
         <SettingsRow label="업로드 대기" value={`${capture.status.pendingCount}건`}>
-          {capture.status.lastUploadError === 'device_revoked' ? (
-            <Text style={[FONT.caption, { color: status.cancelled.fg }]}>이 기기의 업로드 키가 폐기됐어요. 로그아웃 후 다시 로그인해 주세요</Text>
+          {capture.isAvailable && (!capture.status.isConfigured || capture.status.lastUploadError === 'device_revoked') ? (
+            <Text style={[FONT.caption, { color: status.cancelled.fg }]} onPress={reconnect}>
+              {isReconnecting ? '다시 연결하는 중…' : '업로드 연결이 끊겼어요. 눌러서 다시 연결'}
+            </Text>
           ) : null}
         </SettingsRow>
         <SettingsRow label="배터리 최적화 예외" onPress={() => Linking.openSettings()} />
@@ -66,6 +71,7 @@ export default function SettingsPage() {
         <SectionHeader title="AI" />
         <SettingsRow label="이번 달 AI 호출" value={`${calls} / ${cap}회`}>
           <UsageBar ratio={cap > 0 ? calls / cap : 1} />
+          {aiError ? <Text style={[FONT.caption, { color: status.cancelled.fg }]}>{`최근 정리에서 AI를 쓰지 못했어요 (${aiError})`}</Text> : null}
           <View style={styles.chips}>
             {AI_CAP_OPTIONS.map((option) => (
               <Chip key={option} label={`월 ${option}회`} selected={cap === option} tone={status.group} onPress={() => save.mutate({ ai_monthly_call_cap: option })} />
@@ -74,7 +80,7 @@ export default function SettingsPage() {
         </SettingsRow>
 
         <SectionHeader title="계정" />
-        <SettingsRow label="로그아웃" onPress={deleteSession} />
+        <SettingsRow label="로그아웃" onPress={signOut} />
       </ScrollView>
     </ScreenLayout>
   );

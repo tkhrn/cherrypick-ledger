@@ -34,3 +34,8 @@ export function getCaptureStatus(): CaptureStatus {
 export function flushCapture(): void {
   NativeCapture?.flushNow();
 }
+
+/** 로그아웃 시 업로드 키·대기열·상태를 지운다 */
+export function clearCapture(): void {
+  NativeCapture?.clear();
+}

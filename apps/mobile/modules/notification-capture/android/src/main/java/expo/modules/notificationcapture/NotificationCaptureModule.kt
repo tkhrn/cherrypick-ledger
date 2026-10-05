@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
+import androidx.work.WorkManager
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -56,6 +57,13 @@ class NotificationCaptureModule : Module() {
         "lastUploadError" to config.lastUploadError,
         "isConfigured" to (config.deviceKey != null),
       )
+    }
+
+    Function("clear") {
+      // 다른 계정으로 로그인했을 때 이전 계정의 대기열·키로 올라가지 않도록 모두 지운다
+      WorkManager.getInstance(context).cancelUniqueWork(UploadWorker.WORK_NAME)
+      CaptureStore(context).clear()
+      CaptureConfig(context).clear()
     }
 
     Function("flushNow") {

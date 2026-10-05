@@ -96,13 +96,13 @@ isOneToOne: false
                   ]
                 },"organize_runs": {
                   Row: {
-                    "ai_calls": number,"ai_input_tokens": number,"ai_output_tokens": number,"error": string | null,"failed_count": number,"finished_at": string | null,"id": string,"processed_count": number,"started_at": string,"status": string,"trigger": string,"user_id": string
+                    "ai_calls": number,"ai_error": string | null,"ai_input_tokens": number,"ai_output_tokens": number,"error": string | null,"failed_count": number,"finished_at": string | null,"id": string,"processed_count": number,"started_at": string,"status": string,"trigger": string,"user_id": string
                   }
                   Insert: {
-                    "ai_calls"?: number,"ai_input_tokens"?: number,"ai_output_tokens"?: number,"error"?: string | null,"failed_count"?: number,"finished_at"?: string | null,"id"?: string,"processed_count"?: number,"started_at"?: string,"status"?: string,"trigger": string,"user_id": string
+                    "ai_calls"?: number,"ai_error"?: string | null,"ai_input_tokens"?: number,"ai_output_tokens"?: number,"error"?: string | null,"failed_count"?: number,"finished_at"?: string | null,"id"?: string,"processed_count"?: number,"started_at"?: string,"status"?: string,"trigger": string,"user_id": string
                   }
                   Update: {
-                    "ai_calls"?: number,"ai_input_tokens"?: number,"ai_output_tokens"?: number,"error"?: string | null,"failed_count"?: number,"finished_at"?: string | null,"id"?: string,"processed_count"?: number,"started_at"?: string,"status"?: string,"trigger"?: string,"user_id"?: string
+                    "ai_calls"?: number,"ai_error"?: string | null,"ai_input_tokens"?: number,"ai_output_tokens"?: number,"error"?: string | null,"failed_count"?: number,"finished_at"?: string | null,"id"?: string,"processed_count"?: number,"started_at"?: string,"status"?: string,"trigger"?: string,"user_id"?: string
                   }
                   Relationships: [
                     
@@ -215,7 +215,7 @@ isOneToOne: false
 { Args: { "p_category_id": string,"p_group_id": string,"p_id": string,"p_memo": string,"p_merchant_key": string,"p_status": string }; Returns: undefined
                            },
 "finish_organize_run":
-{ Args: { "p_ai_calls": number,"p_ai_input": number,"p_ai_output": number,"p_error": string,"p_failed": number,"p_processed": number,"p_run": string,"p_status": string }; Returns: undefined
+{ Args: { "p_ai_calls": number,"p_ai_error"?: string,"p_ai_input": number,"p_ai_output": number,"p_error": string,"p_failed": number,"p_processed": number,"p_run": string,"p_status": string }; Returns: undefined
                            },
 "increment_raw_attempts":
 { Args: { "p_ids": (string)[] }; Returns: undefined
