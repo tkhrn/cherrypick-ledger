@@ -76,6 +76,7 @@
 ┌──────────────▼─────── Supabase ─────────┐
 │ DB: raw_notifications → parsed_events   │
 │     → transactions                      │
+│ Edge Function `ingest` (기기 키 업로드)   │
 │ Edge Function `organize`                │
 │   pg_cron 3시간마다 + 앱 수동 호출        │
 │ Edge Function `daily-digest`             │
@@ -99,7 +100,7 @@ cherrypick-ledger/
 ├── packages/core/               # 해석·묶기·취소·카테고리 키 로직 (순수 TS)
 ├── supabase/
 │   ├── migrations/
-│   └── functions/{organize,daily-digest}/
+│   └── functions/{ingest,organize,daily-digest}/
 ├── designs/                     # 룩앤필·화면·컴포넌트 문서 (플랫폼 무관)
 └── docs/superpowers/specs/
 ```
@@ -111,7 +112,8 @@ cherrypick-ledger/
 - **저장 필드:** `source_package`, `title`, `body`, `posted_at`(알림 시각), `dedupe_key`.
 - **`dedupe_key`:** `sha256(source_package + posted_at(ms) + title + body)`. 같은 알림이 갱신되거나 재업로드돼도 한 번만 저장된다.
 - **업로드:** 로컬 Room DB의 대기열에 넣은 뒤 WorkManager가 업로드한다. 네트워크 연결을 조건으로 걸고, 실패하면 지수 백오프로 재시도한다. 서버에는 `dedupe_key` 기준으로 중복 무시(upsert ignore)하며 저장한다.
-- **인증:** 앱 로그인 세션의 토큰을 네이티브 쪽 안전 저장소에 공유한다. 앱 JS가 살아 있지 않아도 업로드가 가능해야 한다.
+- **인증 (기기 업로드 키):** 로그인 세션 토큰을 네이티브와 공유하지 않는다(Supabase refresh 토큰 회전 때문에 JS와 네이티브가 서로의 세션을 무효화한다). 대신 첫 설정에서 앱이 RPC `register_device()`로 **기기 업로드 키**를 발급받아 네이티브 저장소(EncryptedSharedPreferences)에 넘긴다. DB에는 키의 SHA-256 해시만 `devices` 테이블에 저장한다.
+- **업로드 경로:** 네이티브 모듈 → Edge Function `ingest`(헤더 `x-device-key`) → 키 해시로 사용자 확인 → `raw_notifications`에 service role로 upsert(`dedupe_key` 충돌 무시). 앱 JS가 살아 있지 않아도, 로그인 세션이 만료돼도 업로드가 계속된다.
 - **상태 기록:** 마지막 수집 시각과 업로드 대기 건수를 네이티브 저장소에 기록하고, 앱이 이를 읽어 표시한다.
 
 ## 6. 데이터 모델
@@ -168,13 +170,14 @@ cherrypick-ledger/
 
 | 테이블 | 주요 컬럼 |
 |---|---|
+| `devices` | `key_hash`(unique), `label`, `last_seen_at`, `revoked_at` |
 | `source_apps` | `package_name`, `label`, `enabled`; unique (user_id, package_name) |
 | `my_accounts` | `bank_name`, `last4`, `alias` |
 | `categories` | `name`, `icon`, `color_token`, `sort_order`, `archived` |
 | `groups` | `name`, `archived` |
 | `merchant_memory` | `merchant_key`(정규화된 가게명), `category_id`; unique (user_id, merchant_key) |
 | `organize_runs` | `trigger`(`cron`/`manual`), `status`(`running`/`succeeded`/`failed`), `started_at`, `finished_at`, `processed_count`, `ai_calls`, `ai_input_tokens`, `ai_output_tokens`, `error` |
-| `user_settings` | `digest_time`(기본 21:00), `ai_monthly_call_cap`(기본 300), `expo_push_token`, `sms_enabled` |
+| `user_settings` | `onboarded_at`, `digest_time`(기본 21:00), `ai_monthly_call_cap`(기본 300), `expo_push_token`, `sms_enabled` |
 
 ### 기본 카테고리
 
@@ -308,7 +311,7 @@ cherrypick-ledger/
 | AI 실패·한도 초과·스키마 불일치 | AI 없이 진행하고 `needs_review`를 표시한다 |
 | 배치 중단 | 10분이 지난 `running`은 무시하고 새로 시작한다. 처리 완료는 알림 단위로 기록되므로 이어서 처리된다 |
 | 푸시 실패 | 기록만 남긴다 |
-| 세션 만료 | Supabase 클라이언트가 자동으로 갱신한다. 네이티브 업로드에 401이 나면 대기열을 유지한 채 앱 재로그인을 기다린다 |
+| 세션 만료 | 앱은 Supabase 클라이언트가 자동 갱신한다. 업로드는 기기 키를 쓰므로 영향 없음. 기기 키가 폐기되면(401) 대기열을 유지하고 앱에서 재등록을 안내한다 |
 
 **민감 정보:**
 - 원문은 RLS로 본인만 접근할 수 있다.
