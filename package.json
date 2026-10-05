@@ -8,9 +8,11 @@
     "sync:core": "scripts/sync-core.sh",
     "test:db": "supabase test db",
     "test:functions": "scripts/sync-core.sh --check && scripts/test-functions.sh",
-    "gen:types": "supabase gen types typescript --local > apps/mobile/src/apis/database.types.ts"
+    "gen:types": "supabase gen types typescript --local > apps/mobile/src/apis/database.types.ts",
+    "render:brand": "node scripts/render-brand.mjs"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "deno": "^2.9.6",
     "supabase": "^2.119.0"
   }

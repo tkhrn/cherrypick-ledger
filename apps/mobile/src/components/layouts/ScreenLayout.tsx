@@ -6,12 +6,13 @@ import { useTheme } from '@/hooks/useTheme';
 interface ScreenLayoutProps {
   children: ReactNode;
   edges?: Edge[];
+  background?: string;
 }
 
-export function ScreenLayout({ children, edges = ['top'] }: ScreenLayoutProps) {
+export function ScreenLayout({ children, edges = ['top'], background }: ScreenLayoutProps) {
   const { colors } = useTheme();
   return (
-    <SafeAreaView edges={edges} style={[styles.fill, { backgroundColor: colors.bgPage }]}>
+    <SafeAreaView edges={edges} style={[styles.fill, { backgroundColor: background ?? colors.bgPage }]}>
       <View style={styles.fill}>{children}</View>
     </SafeAreaView>
   );

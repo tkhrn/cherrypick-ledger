@@ -62,6 +62,9 @@ export type CategoryColorToken = keyof (typeof CATEGORY_COLORS)['light'];
 export type StatusTone = keyof (typeof STATUS_TONE)['light'];
 export const CATEGORY_COLOR_TOKENS = Object.keys(CATEGORY_COLORS.light) as CategoryColorToken[];
 
+/** 브랜드 색. 아이콘·스플래시·로그인 화면에만 쓴다 (앱 안은 조용한 기본 색 유지) */
+export const BRAND = { cherry: '#C8364B', cherryPressed: '#A82B3E', leaf: '#2F5D3A', cream: '#FBF3EC', onCherry: '#FFFFFF' } as const;
+
 export const SPACE = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 } as const;
 export const RADIUS = { sm: 6, md: 10, lg: 16, pill: 999 } as const;
 export const ROW_HEIGHT = 56;

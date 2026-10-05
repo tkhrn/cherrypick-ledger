@@ -1,23 +1,25 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, type PressableProps } from 'react-native';
-import { FONT, RADIUS, SPACE } from '@/constants/theme';
+import { BRAND, FONT, RADIUS, SPACE } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 
 interface ButtonProps extends Omit<PressableProps, 'children'> {
   label: string;
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'brand';
   isLoading?: boolean;
 }
 
 export function Button({ label, variant = 'secondary', isLoading = false, disabled, style, ...rest }: ButtonProps) {
   const { colors } = useTheme();
   const isPrimary = variant === 'primary';
-  const textColor = isPrimary ? colors.onAccent : colors.accent;
+  const isBrand = variant === 'brand';
+  const textColor = isBrand ? BRAND.onCherry : isPrimary ? colors.onAccent : colors.accent;
   return (
     <Pressable
       accessibilityRole="button"
       style={(state) => [
         styles.base,
         isPrimary && { backgroundColor: colors.accent },
+        isBrand && { backgroundColor: state.pressed ? BRAND.cherryPressed : BRAND.cherry },
         variant === 'secondary' && { borderWidth: 1, borderColor: colors.border },
         state.pressed && styles.pressed,
         disabled && styles.disabled,
