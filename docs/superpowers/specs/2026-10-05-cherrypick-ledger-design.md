@@ -48,7 +48,7 @@
 | 플랫폼 | 안드로이드, 사이드로드 설치(스토어 배포 안 함) |
 | 앱 | Expo(React Native) + Kotlin 네이티브 모듈(알림·문자 수집) |
 | 서버 | Supabase (Postgres, Auth, Edge Functions, pg_cron) |
-| AI | Claude Haiku 4.5 (`claude-haiku-4-5`), 규칙 실패 건만, 배치당 1회 묶음 호출, 월 한도 |
+| AI | Google Gemini API 무료 등급(Flash 계열, 모델명은 환경변수), 규칙 실패 건만, 배치당 1회 묶음 호출, 월 호출 수 한도. `AiClient` 인터페이스 뒤에 두어 제공자 교체 가능 |
 | 수집 대상 | 첫 설정·설정 화면에서 사용자가 고른 앱 + 문자(켜고 끌 수 있음) |
 | 정리 주기 | 3시간마다 자동 + 앱에서 "지금 정리하기" |
 | 정리 알림 | 하루 한 번(기본 21:00), 정리할 건이 있을 때만 |
@@ -173,8 +173,8 @@ cherrypick-ledger/
 | `categories` | `name`, `icon`, `color_token`, `sort_order`, `archived` |
 | `groups` | `name`, `archived` |
 | `merchant_memory` | `merchant_key`(정규화된 가게명), `category_id`; unique (user_id, merchant_key) |
-| `organize_runs` | `trigger`(`cron`/`manual`), `status`(`running`/`succeeded`/`failed`), `started_at`, `finished_at`, `processed_count`, `ai_calls`, `ai_input_tokens`, `ai_output_tokens`, `ai_cost_usd`, `error` |
-| `user_settings` | `digest_time`(기본 21:00), `ai_monthly_cap_usd`(기본 1.00), `expo_push_token`, `sms_enabled` |
+| `organize_runs` | `trigger`(`cron`/`manual`), `status`(`running`/`succeeded`/`failed`), `started_at`, `finished_at`, `processed_count`, `ai_calls`, `ai_input_tokens`, `ai_output_tokens`, `error` |
+| `user_settings` | `digest_time`(기본 21:00), `ai_monthly_call_cap`(기본 300), `expo_push_token`, `sms_enabled` |
 
 ### 기본 카테고리
 
@@ -213,9 +213,11 @@ cherrypick-ledger/
    - 금액과 종류 키워드가 모두 없으면 `unknown`(결제 알림 아님)으로 처리한다.
    - 금액과 종류는 있는데 `payment`/`transfer_out`의 가게·받는 사람을 못 뽑으면 **AI 대상**으로 모은다.
 3. **AI 보완:** AI 대상과 처음 보는 가게의 카테고리 추천 요청을 **한 번의 호출**로 묶는다.
-   - 모델: `claude-haiku-4-5`
+   - 제공자: Google Gemini API(무료 등급). 모델명은 `AI_MODEL` 환경변수(기본: 사용 가능한 최신 Flash 계열), 키는 `GEMINI_API_KEY` secret.
+   - 호출은 `packages/core`의 `AiClient` 인터페이스를 통한다. Gemini 구현체 하나만 두며, 다른 제공자로 바꿀 때 구현체만 추가한다.
    - 입력: 알림 제목·본문만 보낸다(사용자 식별 정보 제외). 출력은 JSON 스키마로 강제한다.
-   - 이번 달 `organize_runs.ai_cost_usd` 합계가 `ai_monthly_cap_usd` 이상이면 AI 호출을 건너뛴다.
+   - 이번 달 `organize_runs.ai_calls` 합계가 `ai_monthly_call_cap` 이상이면 AI 호출을 건너뛴다. 무료 등급의 분당·일일 호출 제한(429)에 걸리면 이번 배치는 AI 없이 진행한다.
+   - 응답 형식은 Gemini의 JSON 스키마 강제 출력(`responseSchema`)을 쓰고, 받은 뒤 다시 스키마 검증한다.
    - 실패, 타임아웃, 스키마 불일치 시 AI 결과 없이 진행한다. 이 경우 `needs_review = true`, `review_reason = missing_merchant`이다.
 4. **묶기:** `payment`/`transfer_out`/`deposit` 해석 결과마다 기존 묶음 후보를 찾는다.
    - 같은 것으로 보는 조건(모두 만족):
@@ -282,7 +284,7 @@ cherrypick-ledger/
   - 목록과 달력을 전환할 수 있다. 달력은 날짜별 금액을 보여주고, 정리할 건이 남은 날에 점을 찍는다.
   - 취소된 건은 합계에서 빼고 취소선으로 표시한다.
 - **모임장부 탭:** 모임 칩으로 거르고, 월 합계와 목록·달력을 보여준다.
-- **설정:** 분석할 앱, 문자 수집, 내 계좌, 카테고리, 모임, 정리 알림 시각, AI 월 한도와 이번 달 사용량, 숨김 처리된 건 보기, 수집 상태(마지막 수집 시각, 업로드 대기 건수)를 둔다.
+- **설정:** 분석할 앱, 문자 수집, 내 계좌, 카테고리, 모임, 정리 알림 시각, AI 월 호출 한도와 이번 달 호출 수, 숨김 처리된 건 보기, 수집 상태(마지막 수집 시각, 업로드 대기 건수)를 둔다.
 - **수집 이상 배너:** 알림 접근 권한이 꺼졌거나, 24시간 넘게 수집이 없으면 상단에 배너를 띄운다.
 
 ## 10. 앱 구현 원칙
@@ -312,7 +314,8 @@ cherrypick-ledger/
 - 원문은 RLS로 본인만 접근할 수 있다.
 - Edge Function 로그에 원문을 출력하지 않는다.
 - AI에는 알림 문구만 보낸다.
-- API 키는 Supabase secrets에만 둔다.
+- Gemini API 무료 등급은 Google이 입력 내용을 제품 개선에 사용할 수 있다. 보내는 내용은 알림 문구(금액·가게명·마스킹된 계좌)뿐이며, 이를 감수하고 무료 등급을 쓰기로 했다. 꺼림칙해지면 유료 등급이나 다른 제공자로 `AiClient` 구현체만 바꾼다.
+- `GEMINI_API_KEY`는 Supabase secrets에만 둔다.
 
 ## 12. 테스트
 
