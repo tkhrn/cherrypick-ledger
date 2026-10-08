@@ -21,6 +21,16 @@ describe('parseNotification', () => {
     expect(result.needsAi).toBe(false);
   });
 
+  // 카드 청구 안내: 지난달 사용액 합계라서 소비로 세면 이중 계산이 된다 (실제 알림 원문)
+  it.each([
+    '[Web발신]\n우리카드이*춘님09/01일결제금액503,700원(08/19기준)잔여TOP935(08/21기준,',
+    '[Web발신]\n[KB국민카드]이*춘님 08/03 결제금액 862,288원(연회비 10,000원 포함) (07',
+  ])('treats a card bill notice as not a payment: %s', (body) => {
+    const result = parseNotification({ id: 'r3', sourcePackage: 'sms', title: '', body, postedAt: '2026-10-07T03:00:00Z' });
+    expect(result.isFinancial).toBe(false);
+    expect(result.needsAi).toBe(false);
+  });
+
   it('still reads a payment that mentions an instant discount', () => {
     const result = parseNotification({ id: 'r2', sourcePackage: 'sms', title: '', body: '[Web발신]\n신한카드 승인 즉시할인 1,000원 결제 9,000원 스타벅스', postedAt: '2026-10-07T03:00:00Z' });
     expect(result.isFinancial).toBe(true);
