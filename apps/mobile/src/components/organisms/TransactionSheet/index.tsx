@@ -114,7 +114,7 @@ function SheetContent({ transaction: t, onRegrouped }: { transaction: Transactio
         {`${dayLabel(kstDayKey(t.occurredAt), todayKstDayKey())} ${kstTime(t.occurredAt)}${t.category ? ` · ${t.category.name}` : ''}`}
       </Text>
       {isCancelled ? <StatusBadge tone="cancelled" label="승인취소됨" /> : null}
-      {t.needsReview && t.reviewReason ? <StatusBadge tone="review" label={REVIEW_REASON_TEXT[t.reviewReason]} /> : null}
+      {t.status === 'pending' && t.needsReview && t.reviewReason ? <StatusBadge tone="review" label={REVIEW_REASON_TEXT[t.reviewReason]} /> : null}
 
       <DecisionSection draft={draft} onChange={change} onIgnore={() => submit({ ...draft, status: 'ignored' })} />
       <SheetTextField placeholder="메모" value={draft.memo} onChangeText={(memo) => change({ memo })} />

@@ -3,6 +3,7 @@ import { isCronCall } from '../_shared/cron.ts';
 import { json } from '../_shared/http.ts';
 import { createAdminClient } from '../_shared/supabaseAdmin.ts';
 import { createSupabaseRepo } from '../_shared/supabaseRepo.ts';
+import { interpretRunStart } from './runStart.ts';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 const DEFAULT_AI_MODEL = 'gemini-flash-latest';
@@ -11,8 +12,13 @@ const MAX_PARSE_ATTEMPTS = 3;
 type RunStatus = 'succeeded' | 'already_running' | 'failed';
 
 async function organizeUser(admin: SupabaseClient, userId: string, trigger: 'cron' | 'manual') {
-  const { data: runId } = await admin.rpc('start_organize_run', { p_user: userId, p_trigger: trigger });
-  if (!runId) return { status: 'already_running' as RunStatus, processed: 0 };
+  const start = interpretRunStart(await admin.rpc('start_organize_run', { p_user: userId, p_trigger: trigger }));
+  if (start.kind === 'already_running') return { status: 'already_running' as RunStatus, processed: 0 };
+  if (start.kind === 'failed') {
+    console.error('organize start failed', userId, start.message);
+    return { status: 'failed' as RunStatus, processed: 0 };
+  }
+  const { runId } = start;
 
   try {
     const [{ data: settings }, { data: callsThisMonth }] = await Promise.all([

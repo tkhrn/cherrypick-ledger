@@ -39,6 +39,9 @@ export interface AppRule {
   parse(n: RawNotification): RuleFields | null;
 }
 
+// 카드 혜택 안내(할인 예정·청구할인). 금액이 있어도 결제가 아니다. "즉시할인"처럼 결제 문자 안의 할인 줄은 해당하지 않는다
+const BENEFIT_NOTICE = /할인되어|청구할인|할인받아요|할인\s*\(?예정/;
+
 const KINDS_WITH_MERCHANT: EventKind[] = ['payment', 'transfer_out', 'cancel'];
 const KINDS_NEEDING_MERCHANT: EventKind[] = ['payment', 'transfer_out'];
 
@@ -57,7 +60,7 @@ export function parseNotification(n: RawNotification, rules: AppRule[] = APP_RUL
   const occurredAt = extractOccurredAt(text, n.postedAt);
   const base = { rawId: n.id, sourcePackage: n.sourcePackage, accountLast4: extractAccountLast4(text), occurredAt };
 
-  if (amount === null) {
+  if (amount === null || BENEFIT_NOTICE.test(text)) {
     return {
       event: { ...base, kind: 'unknown', amount: null, merchant: null, parser: 'rule:generic' },
       isFinancial: false,
