@@ -1,7 +1,7 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { router } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { ScreenLayout } from '@/components/layouts/ScreenLayout';
 import { OrganizeStatusBar } from '@/components/molecules/OrganizeStatusBar';
 import { CaptureBanner } from '@/components/organisms/CaptureBanner';
@@ -15,8 +15,10 @@ import type { DecisionStatus, Transaction } from '@/types/transaction';
 import { formatDayKey, todayKstDayKey } from '@/utils/kstDate';
 import { formatWon } from '@/utils/won';
 import { DayHeader } from './_components/DayHeader';
+import { ReviewEmptyState } from './_components/ReviewEmptyState';
 import { SelectionBar } from './_components/SelectionBar';
 import { UndoSnackbar } from './_components/UndoSnackbar';
+import { useAutoHiddenCount } from './_hooks/useAutoHiddenCount';
 import { useOrganizeStatus } from './_hooks/useOrganizeStatus';
 import { usePendingDays } from './_hooks/usePendingDays';
 
@@ -25,6 +27,7 @@ export default function ReviewPage() {
   const { days, count, total, isLoading, refetch } = usePendingDays();
   const { state: organizeState, runNow, refresh: refreshOrganize } = useOrganizeStatus();
   const { decide } = useTransactionDecision();
+  const autoHiddenCount = useAutoHiddenCount();
   const sheetRef = useRef<BottomSheetModal>(null);
   const [opened, setOpened] = useState<Transaction | null>(null);
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -119,7 +122,13 @@ export default function ReviewPage() {
             onLongPress={() => toggleSelected(item.id)}
           />
         )}
-        ListEmptyComponent={isLoading ? null : <EmptyState />}
+        ListEmptyComponent={
+          isLoading ? null : (
+            <ReviewEmptyState autoHiddenCount={autoHiddenCount} onPressHidden={() => router.push('/setup/hidden')}>
+              <HistoryImportCard />
+            </ReviewEmptyState>
+          )
+        }
         ListFooterComponent={<OrganizeStatusBar state={organizeState} onRun={runNow} />}
         contentContainerStyle={styles.listContent}
       />
@@ -138,26 +147,8 @@ export default function ReviewPage() {
   );
 }
 
-function EmptyState() {
-  const { colors } = useTheme();
-  return (
-    <View style={styles.empty}>
-      <Text style={[FONT.title, { color: colors.textPrimary }]}>오늘은 다 정리했어요</Text>
-      <Text style={[FONT.body, { color: colors.textSecondary }]}>새 결제 알림이 오면 여기에 모여요.</Text>
-      <Pressable onPress={() => router.push('/setup/hidden')} hitSlop={SPACE.sm}>
-        <Text style={[FONT.caption, { color: colors.accent }]}>숨긴 건 보기</Text>
-      </Pressable>
-      <View style={styles.importCard}>
-        <HistoryImportCard />
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   header: { paddingHorizontal: SPACE.lg, paddingTop: SPACE.md, paddingBottom: SPACE.sm, gap: SPACE.xs },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   listContent: { flexGrow: 1, paddingBottom: 80 },
-  empty: { alignItems: 'center', gap: SPACE.sm, paddingTop: 96, paddingHorizontal: SPACE.xl },
-  importCard: { alignSelf: 'stretch', marginTop: SPACE.xl },
 });

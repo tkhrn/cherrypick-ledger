@@ -36,3 +36,10 @@ export async function getTransactions(filter: { status: StatusFilter; from?: str
 export async function updateTransactionMerchant(id: string, merchant: string) {
   unwrap(await supabase.from('transactions').update({ merchant }).eq('id', id));
 }
+
+/** 자동으로 숨긴 건 수 (내 계좌 이체·입금 등) */
+export async function getAutoHiddenCount(): Promise<number> {
+  const { count, error } = await supabase.from('transactions').select('id', { count: 'exact', head: true }).eq('status', 'auto_hidden');
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
