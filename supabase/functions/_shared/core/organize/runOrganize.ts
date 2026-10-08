@@ -55,6 +55,8 @@ export interface OrganizeResult {
 
 export const MAX_PARSE_ATTEMPTS = 3;
 const DEFAULT_BATCH_LIMIT = 500;
+/** AI 한 번에 보내는 알림 수. 응답이 20초 안에 오도록 작게 둔다 */
+const AI_CHUNK_SIZE = 15;
 const LOOKBACK_MS = 8 * 24 * 60 * 60 * 1000;
 
 interface Item {
@@ -89,7 +91,19 @@ function applyAiOutput(item: Item, output: AiParseOutput) {
   if (event.accountLast4 === null && output.accountLast4) event.accountLast4 = output.accountLast4;
 }
 
-async function enrichWithAi(items: Item[], memory: Map<string, string>, categories: { id: string; name: string }[], ai: AiClient) {
+interface AiEnrichment {
+  categoryByRaw: Map<string, string>;
+  usage: AiUsage;
+  calls: number;
+  error: string | null;
+  /** AI 결과를 받지 못한 알림 (실패한 묶음과 그 뒤 묶음) */
+  failedRawIds: Set<string>;
+}
+
+const errorText = (error: unknown) => (error instanceof Error ? `${error.name}: ${error.message}` : 'unknown AI error');
+
+/** AI 요청은 작은 묶음으로 나눠 보낸다. 한 묶음이 실패하면 시간을 아끼려고 남은 묶음은 다음 실행으로 넘긴다 */
+async function enrichWithAi(items: Item[], memory: Map<string, string>, categories: { id: string; name: string }[], ai: AiClient): Promise<AiEnrichment> {
   const requests: AiParseItem[] = items
     .map(({ raw, result }) => ({
       id: raw.id,
@@ -98,17 +112,28 @@ async function enrichWithAi(items: Item[], memory: Map<string, string>, categori
       needsCategory: result.needsAi || (needsCategory(result.event) && !memory.has(merchantKey(result.event.merchant!))),
     }))
     .filter((r) => r.needsParse || r.needsCategory);
-  if (requests.length === 0) return null;
 
-  const { outputs, usage } = await ai.analyze(requests, categories.map((c) => c.name));
-  const categoryByRaw = new Map<string, string>();
-  for (const output of outputs) {
-    const item = items.find((i) => i.raw.id === output.id);
-    if (item) applyAiOutput(item, output);
-    const categoryId = categories.find((c) => c.name === output.category)?.id;
-    if (categoryId) categoryByRaw.set(output.id, categoryId);
+  const enrichment: AiEnrichment = { categoryByRaw: new Map(), usage: { inputTokens: 0, outputTokens: 0 }, calls: 0, error: null, failedRawIds: new Set() };
+  for (let start = 0; start < requests.length; start += AI_CHUNK_SIZE) {
+    const chunk = requests.slice(start, start + AI_CHUNK_SIZE);
+    try {
+      const { outputs, usage } = await ai.analyze(chunk, categories.map((c) => c.name));
+      enrichment.calls += 1;
+      enrichment.usage.inputTokens += usage.inputTokens;
+      enrichment.usage.outputTokens += usage.outputTokens;
+      for (const output of outputs) {
+        const item = items.find((i) => i.raw.id === output.id);
+        if (item) applyAiOutput(item, output);
+        const categoryId = categories.find((c) => c.name === output.category)?.id;
+        if (categoryId) enrichment.categoryByRaw.set(output.id, categoryId);
+      }
+    } catch (error) {
+      enrichment.error = errorText(error);
+      for (const r of requests.slice(start)) enrichment.failedRawIds.add(r.id);
+      break;
+    }
   }
-  return { categoryByRaw, usage };
+  return enrichment;
 }
 
 function reviewReasonFor(e: ParsedEvent): ReviewReason | null {
@@ -225,18 +250,15 @@ export async function runOrganize(repo: OrganizeRepository, opts: OrganizeOption
   const memory = await repo.fetchMerchantMemory(keys);
 
   let aiCategoryByRaw = new Map<string, string>();
+  let aiFailedRawIds = new Set<string>();
   if (opts.ai && opts.aiAllowed) {
-    try {
-      const enriched = await enrichWithAi(items, memory, categories, opts.ai);
-      if (enriched) {
-        aiCategoryByRaw = enriched.categoryByRaw;
-        result.aiCalls = 1;
-        result.aiUsage = enriched.usage;
-      }
-    } catch (error) {
-      // AI 실패는 배치를 멈추지 않는다. AI가 필요한 건은 다음 실행에서 다시 시도하고, 이유는 실행 기록에 남긴다.
-      result.aiError = error instanceof Error ? `${error.name}: ${error.message}` : 'unknown AI error';
-    }
+    // AI 실패는 배치를 멈추지 않는다. AI가 필요한 건은 다음 실행에서 다시 시도하고, 이유는 실행 기록에 남긴다.
+    const enriched = await enrichWithAi(items, memory, categories, opts.ai);
+    aiCategoryByRaw = enriched.categoryByRaw;
+    aiFailedRawIds = enriched.failedRawIds;
+    result.aiCalls = enriched.calls;
+    result.aiUsage = enriched.usage;
+    result.aiError = enriched.error;
   }
 
   const ctx: Context = { repo, txs, myLast4s, memory, aiCategoryByRaw };
@@ -245,7 +267,7 @@ export async function runOrganize(repo: OrganizeRepository, opts: OrganizeOption
   // 알림 하나를 끝낼 때마다 처리 완료를 남긴다. 배치가 중간에 죽어도 다음 실행이 같은 알림을 다시 만들지 않는다.
   for (const item of items) {
     // AI가 필요한데 AI가 실패했으면 다음 실행까지 미룬다. 마지막 시도에서는 AI 없이 확인 필요로 남긴다.
-    const waitForAi = result.aiError !== null && item.result.needsAi && item.raw.attempts + 1 < MAX_PARSE_ATTEMPTS;
+    const waitForAi = aiFailedRawIds.has(item.raw.id) && item.result.needsAi && item.raw.attempts + 1 < MAX_PARSE_ATTEMPTS;
     if (waitForAi) {
       retryIds.push(item.raw.id);
       continue;

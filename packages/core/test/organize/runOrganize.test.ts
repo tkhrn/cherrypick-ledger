@@ -128,6 +128,31 @@ describe('runOrganize', () => {
     expect(repo.txs[0]?.needsReview).toBe(true);
   });
 
+  it('asks AI in small chunks so each request finishes in time', async () => {
+    const repo = new MemoryRepo();
+    repo.raws = Array.from({ length: 20 }, (_, i) => raw(`r${i}`, 'com.card', `KB국민카드 승인 ${i + 1},000원`, `2026-10-05T10:${String(10 + i).padStart(2, '0')}:00Z`));
+    const ai = aiReturning([]);
+    const result = await run(repo, ai);
+    expect(ai.analyze).toHaveBeenCalledTimes(2);
+    expect(ai.analyze.mock.calls.map(([items]) => items.length)).toEqual([15, 5]);
+    expect(result.aiCalls).toBe(2);
+  });
+
+  it('only holds back the items of the chunk whose AI request failed', async () => {
+    const repo = new MemoryRepo();
+    repo.raws = Array.from({ length: 20 }, (_, i) => raw(`r${i}`, 'com.card', `KB국민카드 승인 ${i + 1},000원`, `2026-10-05T10:${String(10 + i).padStart(2, '0')}:00Z`));
+    const ai: AiClient = {
+      analyze: vi.fn()
+        .mockResolvedValueOnce({ outputs: [], usage: { inputTokens: 10, outputTokens: 5 } })
+        .mockRejectedValueOnce(new Error('Gemini request failed: 503')),
+    };
+    const result = await run(repo, ai);
+    expect(result.processed).toBe(15);
+    expect(repo.raws.filter((r) => r.attempts === 1)).toHaveLength(5);
+    expect(result.aiError).toBe('Error: Gemini request failed: 503');
+    expect(result.aiCalls).toBe(1);
+  });
+
   it('waits for the next run when AI fails on an item that needs it', async () => {
     const repo = new MemoryRepo();
     repo.raws = [raw('r1', 'com.card', 'KB국민카드 승인 7,800원')];
