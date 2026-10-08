@@ -1,3 +1,5 @@
+// PKCE(SHA-256)에 필요한 WebCrypto를 클라이언트보다 먼저 채운다
+import '@/polyfills';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
