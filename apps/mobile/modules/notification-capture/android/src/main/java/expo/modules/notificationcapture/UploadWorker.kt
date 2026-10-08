@@ -25,6 +25,7 @@ class UploadWorker(context: Context, params: WorkerParameters) : Worker(context,
     val url = config.ingestUrl ?: return Result.success()
     val key = config.deviceKey ?: return Result.success()
     val store = CaptureStore(applicationContext)
+    var rejectedStatus: Int? = null
 
     while (true) {
       val batch = store.peek(BATCH_SIZE)
@@ -32,22 +33,29 @@ class UploadWorker(context: Context, params: WorkerParameters) : Worker(context,
       val status = try {
         post(url, key, batch)
       } catch (e: Exception) {
-        config.lastUploadError = "network"
-        return Result.retry()
+        null
       }
-      when {
-        status in 200..299 -> store.delete(batch.map { it.id })
-        status == HttpURLConnection.HTTP_UNAUTHORIZED -> {
+      when (UploadPolicy.decide(status, runAttemptCount)) {
+        UploadOutcome.DELETE -> store.delete(batch.map { it.id })
+        UploadOutcome.DROP -> {
+          store.delete(batch.map { it.id })
+          rejectedStatus = status
+        }
+        UploadOutcome.REVOKED -> {
           config.lastUploadError = "device_revoked"
           return Result.failure()
         }
-        else -> {
-          config.lastUploadError = "http_$status"
+        UploadOutcome.RETRY -> {
+          config.lastUploadError = status?.let { "http_$it" } ?: "network"
           return Result.retry()
+        }
+        UploadOutcome.GIVE_UP -> {
+          config.lastUploadError = status?.let { "http_$it" } ?: "network"
+          return Result.failure()
         }
       }
     }
-    config.lastUploadError = null
+    config.lastUploadError = rejectedStatus?.let { "rejected_http_$it" }
     return Result.success()
   }
 
