@@ -1,5 +1,6 @@
 import { IconCheck, IconEyeOff } from '@tabler/icons-react-native';
 import * as Haptics from 'expo-haptics';
+import { memo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { CategoryIcon } from '@/components/atoms/CategoryIcon';
@@ -14,22 +15,24 @@ interface SwipeableTransactionRowProps {
   selected: boolean;
   /** 이 행의 상세 시트가 뜨는 중. 시트가 올라오기 시작할 때까지 스피너를 보여준다 */
   isOpening: boolean;
-  onSwipeMine: () => void;
-  onSwipeIgnore: () => void;
-  onPress: () => void;
-  onLongPress: () => void;
+  onSwipeMine: (transaction: Transaction) => void;
+  onSwipeIgnore: (transaction: Transaction) => void;
+  onPress: (transaction: Transaction) => void;
+  onLongPress: (transaction: Transaction) => void;
 }
 
 const SWIPE_THRESHOLD = 0.35;
 const ROW_WIDTH_ESTIMATE = 360;
 
-export function SwipeableTransactionRow({ transaction: t, selectionMode, selected, isOpening, onSwipeMine, onSwipeIgnore, onPress, onLongPress }: SwipeableTransactionRowProps) {
+/** 목록 상태(여는 중·선택)가 바뀌어도 해당 행만 다시 그려지도록 memo. 핸들러는 행 밖에서 고정된 함수를 받는다 */
+export const SwipeableTransactionRow = memo(function SwipeableTransactionRow({ transaction: t, selectionMode, selected, isOpening, onSwipeMine, onSwipeIgnore, onPress, onLongPress }: SwipeableTransactionRowProps) {
   const { colors, status } = useTheme();
 
   const handleOpen = (direction: 'left' | 'right') => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (direction === 'left') onSwipeMine();
-    else onSwipeIgnore();
+    // direction은 미는 방향이다: 오른쪽으로 밀면 왼쪽 패널(내 소비)이 열린다
+    if (direction === 'right') onSwipeMine(t);
+    else onSwipeIgnore(t);
   };
 
   const checkbox = (
@@ -48,8 +51,8 @@ export function SwipeableTransactionRow({ transaction: t, selectionMode, selecte
 
   const row = (
     <Pressable
-      onPress={onPress}
-      onLongPress={onLongPress}
+      onPress={() => onPress(t)}
+      onLongPress={() => onLongPress(t)}
       disabled={isOpening}
       accessibilityRole="button"
       accessibilityState={{ busy: isOpening, selected: selectionMode ? selected : undefined }}
@@ -92,7 +95,7 @@ export function SwipeableTransactionRow({ transaction: t, selectionMode, selecte
       {row}
     </ReanimatedSwipeable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   action: { flex: 1, justifyContent: 'center', paddingHorizontal: SPACE.xl },

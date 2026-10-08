@@ -24,7 +24,8 @@ export default function ReviewPage() {
   const { colors } = useTheme();
   const { days, count, total, isLoading, refetch } = usePendingDays();
   const { state: organizeState, runNow, refresh: refreshOrganize } = useOrganizeStatus();
-  const { decide } = useTransactionDecision();
+  // mutateAsync만 꺼낸다: decide 객체는 렌더마다 새로 만들어져 행 핸들러가 매번 바뀐다
+  const { mutateAsync: decideAsync } = useTransactionDecision().decide;
   const sheetRef = useRef<BottomSheetModal>(null);
   const [opened, setOpened] = useState<Transaction | null>(null);
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -42,7 +43,7 @@ export default function ReviewPage() {
 
   // 실패한 건은 목록에 되돌아오므로, 스낵바도 실패 안내로 바꿔 알린다
   const decideAll = async (transactions: Transaction[], status: DecisionStatus) => {
-    const results = await Promise.allSettled(transactions.map((transaction) => decide.mutateAsync({ transaction, status })));
+    const results = await Promise.allSettled(transactions.map((transaction) => decideAsync({ transaction, status })));
     if (results.some((r) => r.status === 'rejected')) setUndo({ message: '처리하지 못한 건이 있어요. 다시 시도해 주세요', transactions: [] });
   };
 
@@ -58,6 +59,10 @@ export default function ReviewPage() {
     }
     decideMany([t], 'mine', '내 소비로 옮겼어요');
   };
+
+  const handleSwipeIgnore = (t: Transaction) => decideMany([t], 'ignored', '무시했어요');
+  const handlePress = (t: Transaction) => (selectionMode ? toggleSelected(t.id) : openSheet(t));
+  const handleLongPress = (t: Transaction) => toggleSelected(t.id);
 
   const toggleSelected = (id: string) =>
     setSelected((prev) => {
@@ -113,10 +118,10 @@ export default function ReviewPage() {
             selectionMode={selectionMode}
             selected={selected.has(item.id)}
             isOpening={openingId === item.id}
-            onSwipeMine={() => handleSwipeMine(item)}
-            onSwipeIgnore={() => decideMany([item], 'ignored', '무시했어요')}
-            onPress={() => (selectionMode ? toggleSelected(item.id) : openSheet(item))}
-            onLongPress={() => toggleSelected(item.id)}
+            onSwipeMine={handleSwipeMine}
+            onSwipeIgnore={handleSwipeIgnore}
+            onPress={handlePress}
+            onLongPress={handleLongPress}
           />
         )}
         ListEmptyComponent={isLoading ? null : <EmptyState />}
