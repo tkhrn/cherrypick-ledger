@@ -3,7 +3,8 @@ import type { EventKind } from '../types.ts';
 const MAX_MERCHANT_LENGTH = 40;
 const SOURCE_TAG = /^\s*\[[^\]]*\]\s*/;
 
-const TRANSFER_PATTERNS = [/(\S+?)님(?:에게|께)/, /받는\s?분\s*:?\s*(\S+)/];
+// 은행 출금 문자: "출금 100,000원 토뱅 이장춘 잔액 200,000원" (받는 쪽이 금액과 잔액 사이에 있다)
+const TRANSFER_PATTERNS = [/(\S+?)님(?:에게|께)/, /받는\s?분\s*:?\s*(\S+)/, /출금\s*[\d,]+\s*원\s+(.+?)\s+잔액/];
 const PAYMENT_PATTERNS = [/^(.+?)에서\s*[\d,]+\s*원/, /[\d,]+\s*원\s+(\S+)\s+(?:승인|결제)/];
 // "에서" 앞에서 가게 이름이 아닌 단어(금액·카드 승인 문구·마스킹된 이름 등)를 만나면 거기서 끊는다
 const NOT_MERCHANT_WORD = /[\d*\]]|원$|승인|결제|일시불|할부|발신/;
@@ -23,7 +24,7 @@ function trailingMerchantWords(value: string): string {
 }
 
 function clean(value: string): string | null {
-  const trimmed = value.replace(SOURCE_TAG, '').trim();
+  const trimmed = value.replace(SOURCE_TAG, '').replace(/\s+/g, ' ').trim();
   if (!trimmed) return null;
   return trimmed.slice(0, MAX_MERCHANT_LENGTH);
 }

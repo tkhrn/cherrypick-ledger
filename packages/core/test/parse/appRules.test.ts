@@ -17,3 +17,12 @@ describe('app rules for Hana Card and Toss', () => {
     expect(result.needsAi).toBe(false);
   });
 });
+
+describe('bank withdrawal SMS', () => {
+  it('reads the recipient between the amount and the balance', () => {
+    const body = '출금 100,000원 토뱅　이장춘　 잔액 200,000원\n10/03 17:45 117-******-34007(구)620****';
+    const result = parseNotification({ id: 'r', sourcePackage: 'sms', title: '', body, postedAt: at });
+    expect(result.event).toMatchObject({ kind: 'transfer_out', amount: 100000, merchant: '토뱅 이장춘' });
+    expect(result.needsAi).toBe(false);
+  });
+});
