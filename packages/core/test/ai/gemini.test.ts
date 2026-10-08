@@ -38,9 +38,43 @@ describe('createGeminiClient', () => {
     await expect(client.analyze(items, categories)).rejects.toBeInstanceOf(AiRateLimitError);
   });
 
-  it('throws on other HTTP errors', async () => {
-    const client = createGeminiClient({ apiKey: 'k', model: 'm', fetchFn: async () => new Response('{}', { status: 500 }) });
-    await expect(client.analyze(items, categories)).rejects.toThrow('Gemini request failed: 500');
+  it('throws on a client error without retrying', async () => {
+    const fetchFn = vi.fn(async () => new Response('{}', { status: 400 }));
+    const client = createGeminiClient({ apiKey: 'k', model: 'm', fetchFn, retryDelayMs: 0 });
+    await expect(client.analyze(items, categories)).rejects.toThrow('Gemini request failed: 400');
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('includes Google\'s error message so failures can be diagnosed', async () => {
+    const body = JSON.stringify({ error: { code: 404, message: 'models/m is not found for API version v1beta', status: 'NOT_FOUND' } });
+    const client = createGeminiClient({ apiKey: 'k', model: 'm', fetchFn: async () => new Response(body, { status: 404 }), retryDelayMs: 0 });
+    await expect(client.analyze(items, categories)).rejects.toThrow('Gemini request failed: 404 NOT_FOUND models/m is not found for API version v1beta');
+  });
+
+  it('retries once when Gemini is overloaded', async () => {
+    const fetchFn = vi.fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 503 }))
+      .mockResolvedValueOnce(geminiResponse(JSON.stringify({ items: [{ id: 'a', kind: 'payment', merchant: '한솥도시락', category: '식비' }] })));
+    const client = createGeminiClient({ apiKey: 'k', model: 'm', fetchFn, retryDelayMs: 0 });
+    const result = await client.analyze(items, categories);
+    expect(result.outputs).toHaveLength(1);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries once after a timeout and then reports the failure', async () => {
+    const timeout = () => Promise.reject(new DOMException('Signal timed out.', 'TimeoutError'));
+    const fetchFn = vi.fn(timeout);
+    const client = createGeminiClient({ apiKey: 'k', model: 'm', fetchFn, retryDelayMs: 0 });
+    await expect(client.analyze(items, categories)).rejects.toThrow('Signal timed out.');
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+
+  it('waits up to 20 seconds for a response', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    const client = createGeminiClient({ apiKey: 'k', model: 'm', fetchFn: async () => geminiResponse('{"items":[]}') });
+    await client.analyze(items, categories);
+    expect(timeoutSpy).toHaveBeenCalledWith(20_000);
+    timeoutSpy.mockRestore();
   });
 
   it('returns no outputs for a truncated JSON body', async () => {

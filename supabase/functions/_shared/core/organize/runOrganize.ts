@@ -234,7 +234,7 @@ export async function runOrganize(repo: OrganizeRepository, opts: OrganizeOption
         result.aiUsage = enriched.usage;
       }
     } catch (error) {
-      // AI 실패는 배치를 멈추지 않는다. 해당 건은 needs_review로 남고, 이유는 실행 기록에 남긴다.
+      // AI 실패는 배치를 멈추지 않는다. AI가 필요한 건은 다음 실행에서 다시 시도하고, 이유는 실행 기록에 남긴다.
       result.aiError = error instanceof Error ? `${error.name}: ${error.message}` : 'unknown AI error';
     }
   }
@@ -244,6 +244,12 @@ export async function runOrganize(repo: OrganizeRepository, opts: OrganizeOption
 
   // 알림 하나를 끝낼 때마다 처리 완료를 남긴다. 배치가 중간에 죽어도 다음 실행이 같은 알림을 다시 만들지 않는다.
   for (const item of items) {
+    // AI가 필요한데 AI가 실패했으면 다음 실행까지 미룬다. 마지막 시도에서는 AI 없이 확인 필요로 남긴다.
+    const waitForAi = result.aiError !== null && item.result.needsAi && item.raw.attempts + 1 < MAX_PARSE_ATTEMPTS;
+    if (waitForAi) {
+      retryIds.push(item.raw.id);
+      continue;
+    }
     try {
       await processItem(ctx, item);
       await repo.markProcessed([item.raw.id]);

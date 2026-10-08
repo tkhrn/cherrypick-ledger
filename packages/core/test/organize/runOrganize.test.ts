@@ -128,13 +128,33 @@ describe('runOrganize', () => {
     expect(repo.txs[0]?.needsReview).toBe(true);
   });
 
-  it('keeps going when AI is rate limited', async () => {
+  it('waits for the next run when AI fails on an item that needs it', async () => {
     const repo = new MemoryRepo();
     repo.raws = [raw('r1', 'com.card', 'KB국민카드 승인 7,800원')];
     const ai: AiClient = { analyze: async () => { throw new AiRateLimitError(); } };
     const result = await run(repo, ai);
-    expect(repo.txs[0]).toMatchObject({ needsReview: true, reviewReason: 'missing_merchant' });
-    expect(result).toMatchObject({ processed: 1, aiCalls: 0 });
+    expect(repo.txs).toEqual([]);
+    expect(repo.processed).toEqual([]);
+    expect(repo.raws[0]?.attempts).toBe(1);
+    expect(result).toMatchObject({ processed: 0, aiCalls: 0 });
+  });
+
+  it('gives up waiting for AI on the last attempt and flags the item for review', async () => {
+    const repo = new MemoryRepo();
+    repo.raws = [raw('r1', 'com.card', 'KB국민카드 승인 7,800원', '2026-10-05T10:45:00Z', 2)];
+    const ai: AiClient = { analyze: async () => { throw new Error('Gemini request failed: 503'); } };
+    const result = await run(repo, ai);
+    expect(repo.txs[0]).toMatchObject({ merchant: null, needsReview: true, reviewReason: 'missing_merchant' });
+    expect(result.processed).toBe(1);
+  });
+
+  it('does not hold back items that only wanted a category when AI fails', async () => {
+    const repo = new MemoryRepo();
+    repo.raws = [raw('r1', 'com.pay', '스타벅스에서 5,600원 결제')];
+    const ai: AiClient = { analyze: async () => { throw new Error('Gemini request failed: 503'); } };
+    const result = await run(repo, ai);
+    expect(repo.txs[0]).toMatchObject({ merchant: '스타벅스', categoryId: null });
+    expect(result.processed).toBe(1);
   });
 
   it('retries a failing notification and gives up after three attempts', async () => {
