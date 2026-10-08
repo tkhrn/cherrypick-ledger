@@ -6,7 +6,7 @@ import { createSupabaseRepo } from '../_shared/supabaseRepo.ts';
 import { interpretRunStart } from './runStart.ts';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
-const DEFAULT_AI_MODEL = 'gemini-flash-latest';
+const DEFAULT_AI_MODEL = 'gemini-flash-lite-latest';
 const MAX_PARSE_ATTEMPTS = 3;
 
 type RunStatus = 'succeeded' | 'already_running' | 'failed';

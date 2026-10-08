@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/env.sh "${1:-}"
-AI_MODEL="${AI_MODEL:-gemini-flash-latest}"
+AI_MODEL="${AI_MODEL:-gemini-flash-lite-latest}"
 
 ./scripts/sync-core.sh --check
 pnpm exec supabase link --project-ref "$PROJECT_REF" < /dev/null > /dev/null
